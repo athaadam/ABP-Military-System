@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERD - Sistem Manajemen Gudang Militer</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+    svg {
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .legend {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .legend-item {
+      display: inline-block;
+      margin-right: 30px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .legend-color {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      border-radius: 3px;
+      vertical-align: middle;
+      border: 1px solid #999;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🗄️ Entity Relationship Diagram (ERD)</h1>
+  <h2 style="text-align: center; color: #666; font-size: 16px; margin-bottom: 30px;">Sistem Manajemen Gudang Militer</h2>
+
+  <svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000">
+    <defs>
+      <!-- Crow's foot arrow markers -->
+      <marker id="crowfoot-one" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M9,1 L9,5" stroke="#666" stroke-width="1" fill="none"/>
+      </marker>
+      <marker id="crowfoot-many" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M9,0 L9,6 M6,0 L9,3 L6,6" stroke="#666" stroke-width="0.5" fill="none"/>
+      </marker>
+    </defs>
+
+    <!-- Entity boxes -->
+    <!-- UNIT -->
+    <rect x="600" y="20" width="180" height="110" fill="white" stroke="#E8DAEF" stroke-width="2" rx="3"/>
+    <rect x="600" y="20" width="180" height="25" fill="#BB8FCE" rx="2"/>
+    <text x="690" y="37" text-anchor="middle" font-size="12" font-weight="bold" fill="white">UNIT</text>
+    <text x="605" y="50" font-size="10" fill="#333">id (PK, VARCHAR)</text>
+    <text x="605" y="63" font-size="10" fill="#333">name (VARCHAR)</text>
+    <text x="605" y="76" font-size="10" fill="#333">logo (LONGTEXT)</text>
+    <text x="605" y="89" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- USER -->
+    <rect x="1050" y="20" width="200" height="140" fill="white" stroke="#F1948A" stroke-width="2" rx="3"/>
+    <rect x="1050" y="20" width="200" height="25" fill="#E74C3C" rx="2"/>
+    <text x="1150" y="37" text-anchor="middle" font-size="12" font-weight="bold" fill="white">USER</text>
+    <text x="1055" y="50" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="1055" y="63" font-size="10" fill="#333">name (VARCHAR)</text>
+    <text x="1055" y="76" font-size="10" fill="#333">email (VARCHAR, UNQ)</text>
+    <text x="1055" y="89" font-size="10" fill="#333">password (VARCHAR)</text>
+    <text x="1055" y="102" font-size="10" fill="#333">role (ENUM)</text>
+    <text x="1055" y="115" font-size="10" fill="#D74B4B" font-weight="bold">unitId (FK)</text>
+    <text x="1055" y="128" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- WAREHOUSE -->
+    <rect x="150" y="200" width="180" height="110" fill="white" stroke="#F8C471" stroke-width="2" rx="3"/>
+    <rect x="150" y="200" width="180" height="25" fill="#F39C12" rx="2"/>
+    <text x="240" y="217" text-anchor="middle" font-size="12" font-weight="bold" fill="white">WAREHOUSE</text>
+    <text x="155" y="230" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="155" y="243" font-size="10" fill="#333">name (VARCHAR)</text>
+    <text x="155" y="256" font-size="10" fill="#D74B4B" font-weight="bold">unitId (FK)</text>
+    <text x="155" y="269" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- ITEM -->
+    <rect x="500" y="200" width="200" height="165" fill="white" stroke="#AED6F1" stroke-width="2" rx="3"/>
+    <rect x="500" y="200" width="200" height="25" fill="#3498DB" rx="2"/>
+    <text x="600" y="217" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ITEM</text>
+    <text x="505" y="230" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="505" y="243" font-size="10" fill="#333">name (VARCHAR)</text>
+    <text x="505" y="256" font-size="10" fill="#333">category (ENUM)</text>
+    <text x="505" y="269" font-size="10" fill="#333">stock (INT)</text>
+    <text x="505" y="282" font-size="10" fill="#333">condition (ENUM)</text>
+    <text x="505" y="295" font-size="10" fill="#D74B4B" font-weight="bold">warehouseId (FK)</text>
+    <text x="505" y="308" font-size="10" fill="#333">imageUrl (LONGTEXT)</text>
+    <text x="505" y="321" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- REQUEST -->
+    <rect x="850" y="200" width="210" height="165" fill="white" stroke="#C8E6C9" stroke-width="2" rx="3"/>
+    <rect x="850" y="200" width="210" height="25" fill="#27AE60" rx="2"/>
+    <text x="955" y="217" text-anchor="middle" font-size="12" font-weight="bold" fill="white">REQUEST</text>
+    <text x="855" y="230" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="855" y="243" font-size="10" fill="#D74B4B" font-weight="bold">userId (FK)</text>
+    <text x="855" y="256" font-size="10" fill="#D74B4B" font-weight="bold">itemId (FK)</text>
+    <text x="855" y="269" font-size="10" fill="#333">quantity (INT)</text>
+    <text x="855" y="282" font-size="10" fill="#333">reason (VARCHAR)</text>
+    <text x="855" y="295" font-size="10" fill="#333">status (ENUM)</text>
+    <text x="855" y="308" font-size="10" fill="#D74B4B" font-weight="bold">approvedBy (FK)</text>
+    <text x="855" y="321" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- RETURN -->
+    <rect x="1100" y="450" width="180" height="110" fill="white" stroke="#D7BDE2" stroke-width="2" rx="3"/>
+    <rect x="1100" y="450" width="180" height="25" fill="#8E44AD" rx="2"/>
+    <text x="1190" y="467" text-anchor="middle" font-size="12" font-weight="bold" fill="white">RETURN</text>
+    <text x="1105" y="480" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="1105" y="493" font-size="10" fill="#D74B4B" font-weight="bold">requestId (FK)</text>
+    <text x="1105" y="506" font-size="10" fill="#333">conditionAfter (ENUM)</text>
+    <text x="1105" y="519" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- REPAIR -->
+    <rect x="450" y="450" width="180" height="110" fill="white" stroke="#F4D6DE" stroke-width="2" rx="3"/>
+    <rect x="450" y="450" width="180" height="25" fill="#E91E63" rx="2"/>
+    <text x="540" y="467" text-anchor="middle" font-size="12" font-weight="bold" fill="white">REPAIR</text>
+    <text x="455" y="480" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="455" y="493" font-size="10" fill="#D74B4B" font-weight="bold">itemId (FK)</text>
+    <text x="455" y="506" font-size="10" fill="#333">description (VARCHAR)</text>
+    <text x="455" y="519" font-size="10" fill="#333">status (ENUM)</text>
+
+    <!-- ITEM_CONDITION_STOCK -->
+    <rect x="500" y="650" width="220" height="125" fill="white" stroke="#A9DFBF" stroke-width="2" rx="3"/>
+    <rect x="500" y="650" width="220" height="25" fill="#52BE80" rx="2"/>
+    <text x="610" y="667" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ITEM_CONDITION_STOCK</text>
+    <text x="505" y="680" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="505" y="693" font-size="10" fill="#D74B4B" font-weight="bold">itemId (FK)</text>
+    <text x="505" y="706" font-size="10" fill="#333">condition (ENUM)</text>
+    <text x="505" y="719" font-size="10" fill="#333">quantity (INT)</text>
+    <text x="505" y="732" font-size="10" fill="#333">UNIQUE(itemId, condition)</text>
+    <text x="505" y="745" font-size="10" fill="#333">created_at, updated_at</text>
+
+    <!-- ITEM_CONDITION_MUTATION_LOG -->
+    <rect x="150" y="650" width="280" height="140" fill="white" stroke="#F9E79F" stroke-width="2" rx="3"/>
+    <rect x="150" y="650" width="280" height="25" fill="#F4D03F" rx="2"/>
+    <text x="290" y="667" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">ITEM_CONDITION_MUTATION_LOG</text>
+    <text x="155" y="680" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="155" y="693" font-size="10" fill="#D74B4B" font-weight="bold">itemId (FK)</text>
+    <text x="155" y="706" font-size="10" fill="#333">fromCondition (ENUM)</text>
+    <text x="155" y="719" font-size="10" fill="#333">toCondition (ENUM)</text>
+    <text x="155" y="732" font-size="10" fill="#333">quantity (INT)</text>
+    <text x="155" y="745" font-size="10" fill="#D74B4B" font-weight="bold">userId (FK)</text>
+    <text x="155" y="758" font-size="10" fill="#333">note, created_at</text>
+
+    <!-- LOG -->
+    <rect x="1050" y="650" width="200" height="140" fill="white" stroke="#F1948A" stroke-width="2" rx="3"/>
+    <rect x="1050" y="650" width="200" height="25" fill="#E74C3C" rx="2"/>
+    <text x="1150" y="667" text-anchor="middle" font-size="12" font-weight="bold" fill="white">LOG</text>
+    <text x="1055" y="680" font-size="10" fill="#333">id (PK, INT)</text>
+    <text x="1055" y="693" font-size="10" fill="#D74B4B" font-weight="bold">userId (FK)</text>
+    <text x="1055" y="706" font-size="10" fill="#333">action (VARCHAR)</text>
+    <text x="1055" y="719" font-size="10" fill="#333">description (VARCHAR)</text>
+    <text x="1055" y="732" font-size="10" fill="#333">old_value (JSON)</text>
+    <text x="1055" y="745" font-size="10" fill="#333">new_value (JSON)</text>
+    <text x="1055" y="758" font-size="10" fill="#333">created_at</text>
+
+    <!-- Relationship lines -->
+    <!-- UNIT → USER (1-to-N) -->
+    <line x1="780" y1="65" x2="1050" y2="65" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="900" y="55" font-size="10" fill="#666" font-weight="bold">has</text>
+
+    <!-- UNIT → WAREHOUSE (1-to-N) -->
+    <line x1="600" y1="100" x2="330" y2="210" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="430" y="150" font-size="10" fill="#666" font-weight="bold">has</text>
+
+    <!-- WAREHOUSE → ITEM (1-to-N) -->
+    <line x1="330" y1="250" x2="500" y2="265" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="400" y="245" font-size="10" fill="#666" font-weight="bold">stores</text>
+
+    <!-- USER → REQUEST (1-to-N, requester) -->
+    <line x1="1050" y1="150" x2="955" y2="200" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="980" y="170" font-size="10" fill="#666" font-weight="bold">creates</text>
+
+    <!-- USER → REQUEST (1-to-N, approver) -->
+    <line x1="1150" y1="160" x2="1000" y2="220" stroke="#666" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#crowfoot-many)"/>
+    <text x="1080" y="180" font-size="9" fill="#999" font-style="italic">approves (nullable)</text>
+
+    <!-- ITEM → REQUEST (1-to-N) -->
+    <line x1="700" y1="270" x2="850" y2="270" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="750" y="260" font-size="10" fill="#666" font-weight="bold">refers_to</text>
+
+    <!-- REQUEST → RETURN (1-to-N) -->
+    <line x1="955" y1="365" x2="1150" y2="450" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="1020" y="410" font-size="10" fill="#666" font-weight="bold">generates</text>
+
+    <!-- ITEM → REPAIR (1-to-N) -->
+    <line x1="550" y1="365" x2="520" y2="450" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="510" y="410" font-size="10" fill="#666" font-weight="bold">has</text>
+
+    <!-- ITEM → ITEM_CONDITION_STOCK (1-to-N) -->
+    <line x1="600" y1="365" x2="610" y2="650" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="615" y="510" font-size="10" fill="#666" font-weight="bold">tracks</text>
+
+    <!-- ITEM → ITEM_CONDITION_MUTATION_LOG (1-to-N) -->
+    <line x1="500" y1="365" x2="320" y2="650" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="380" y="510" font-size="10" fill="#666" font-weight="bold">generates</text>
+
+    <!-- USER → ITEM_CONDITION_MUTATION_LOG (1-to-N) -->
+    <line x1="1100" y1="160" x2="430" y2="680" stroke="#666" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#crowfoot-many)"/>
+    <text x="700" y="420" font-size="9" fill="#999" font-style="italic">performs (nullable)</text>
+
+    <!-- USER → LOG (1-to-N) -->
+    <line x1="1150" y1="160" x2="1150" y2="650" stroke="#666" stroke-width="2" marker-end="url(#crowfoot-many)"/>
+    <text x="1160" y="410" font-size="10" fill="#666" font-weight="bold">generates</text>
+
+    <!-- Legend background -->
+    <rect x="50" y="860" width="1300" height="110" fill="#F8F9FA" stroke="#DDD" stroke-width="1" rx="3"/>
+
+    <!-- Legend title -->
+    <text x="60" y="885" font-size="12" font-weight="bold" fill="#333">Keterangan:</text>
+
+    <!-- Legend items -->
+    <rect x="60" y="895" width="20" height="20" fill="#BB8FCE" stroke="#666" stroke-width="1"/>
+    <text x="90" y="910" font-size="11" fill="#333">Master Data</text>
+
+    <rect x="280" y="895" width="20" height="20" fill="#F39C12" stroke="#666" stroke-width="1"/>
+    <text x="310" y="910" font-size="11" fill="#333">Gudang</text>
+
+    <rect x="450" y="895" width="20" height="20" fill="#3498DB" stroke="#666" stroke-width="1"/>
+    <text x="480" y="910" font-size="11" fill="#333">Item/Barang</text>
+
+    <rect x="630" y="895" width="20" height="20" fill="#27AE60" stroke="#666" stroke-width="1"/>
+    <text x="660" y="910" font-size="11" fill="#333">Permintaan</text>
+
+    <rect x="840" y="895" width="20" height="20" fill="#E74C3C" stroke="#666" stroke-width="1"/>
+    <text x="870" y="910" font-size="11" fill="#333">User & Audit</text>
+
+    <rect x="1070" y="895" width="20" height="20" fill="#8E44AD" stroke="#666" stroke-width="1"/>
+    <text x="1100" y="910" font-size="11" fill="#333">Return/Repair</text>
+
+    <text x="60" y="945" font-size="10" fill="#666"><tspan font-weight="bold">Notasi:</tspan> — = Relasi 1-to-1, ──── = Relasi 1-to-N, - - - - = FK Nullable</text>
+  </svg>
+
+  <div class="legend">
+    <strong style="display: block; margin-bottom: 12px; color: #333;">📋 Penjelasan Struktur:</strong>
+
+    <div class="legend-item">
+      <strong>PK (Primary Key):</strong> Identitas unik setiap record
+    </div><br/>
+
+    <div class="legend-item">
+      <strong>FK (Foreign Key):</strong> Kunci tamu yang mereferensikan tabel lain (dicetak merah)
+    </div><br/>
+
+    <div class="legend-item">
+      <strong>UNIQUE:</strong> Kombinasi kolom harus unik (contoh: itemId + condition pada ITEM_CONDITION_STOCK)
+    </div><br/>
+
+    <div class="legend-item">
+      <strong>NULLABLE:</strong> Kolom boleh kosong (ditandai dengan garis putus-putus pada relasi)
+    </div><br/>
+
+    <div class="legend-item">
+      <strong>ENUM:</strong> Tipe data dengan pilihan nilai terbatas (contoh: role = superadmin/admin/user)
+    </div>
+  </div>
+</div>
+</body>
+</html>

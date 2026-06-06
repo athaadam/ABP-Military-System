@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERD Tabel - Sistem Manajemen Gudang Militer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #2C3E50;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    thead {
+      background-color: #2C3E50;
+      color: white;
+    }
+    thead th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      border: 1px solid #2C3E50;
+    }
+    tbody tr {
+      border-bottom: 1px solid #E0E0E0;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: #F8F9FA;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #FFFFFF;
+    }
+    tbody tr:hover {
+      background-color: #EBF5FB;
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    td:first-child {
+      font-weight: 600;
+      color: #2C3E50;
+      width: 15%;
+    }
+    td:nth-child(2) {
+      color: #333;
+      width: 40%;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    td:nth-child(3) {
+      color: #666;
+      width: 45%;
+    }
+    .page-break {
+      page-break-after: always;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Entity Relationship Diagram (ERD)</h1>
+    <h2 style="text-align: center; color: #666; margin-bottom: 40px; font-size: 16px;">Sistem Manajemen Gudang Militer</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Entitas</th>
+          <th>Atribut</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>unit</td>
+          <td>id, name, logo, created_at, updated_at</td>
+          <td>Data satuan/unit militer yang menjadi organisasi induk. Setiap unit memiliki warehouse dan user tersendiri.</td>
+        </tr>
+        <tr>
+          <td>user</td>
+          <td>id, name, email, password, role, unitId, created_at, updated_at</td>
+          <td>Data pengguna sistem dengan 3 role: superadmin (kelola seluruh sistem), admin (kelola per unit), user (peminta barang). Berelasi dengan unit melalui unitId.</td>
+        </tr>
+        <tr>
+          <td>warehouse</td>
+          <td>id, name, unitId, created_at, updated_at</td>
+          <td>Data gudang/warehouse tempat penyimpanan barang. Setiap warehouse berada dalam satu unit dan dapat menyimpan banyak item barang.</td>
+        </tr>
+        <tr>
+          <td>item</td>
+          <td>id, name, category, stock, condition, warehouseId, imageUrl, created_at, updated_at</td>
+          <td>Data inventaris barang/alutsista militer (Persenjataan, Amunisi, Kendaraan Militer). Menyimpan stok dan kondisi dominan item. Berelasi dengan warehouse.</td>
+        </tr>
+        <tr>
+          <td>request</td>
+          <td>id, userId, itemId, quantity, reason, status, approvedBy, created_at, updated_at</td>
+          <td>Data permintaan penggunaan barang oleh user. Status: pending → approved/rejected → completed. Berelasi dengan user (peminta dan approver) dan item (barang yang diminta).</td>
+        </tr>
+        <tr>
+          <td>return</td>
+          <td>id, requestId, conditionAfter, created_at, updated_at</td>
+          <td>Data pengembalian barang setelah selesai digunakan. Mencatat kondisi barang saat dikembalikan (Aktif, Rusak, Perbaikan). Berelasi dengan request.</td>
+        </tr>
+        <tr>
+          <td>repair</td>
+          <td>id, itemId, description, status, created_at, updated_at</td>
+          <td>Data perbaikan untuk item yang rusak atau sedang diperbaiki. Status: pending → in_progress → completed. Berelasi dengan item.</td>
+        </tr>
+        <tr>
+          <td>item_condition_stock</td>
+          <td>id, itemId, condition, quantity, created_at, updated_at</td>
+          <td>Tracking stok barang per kondisi (Aktif, Digunakan, Rusak, Perbaikan, Cadangan, Habis). Satu item dapat memiliki stok di berbagai kondisi sekaligus. Composite UNIQUE key pada (itemId, condition).</td>
+        </tr>
+        <tr>
+          <td>item_condition_mutation_log</td>
+          <td>id, itemId, fromCondition, toCondition, quantity, note, userId, created_at</td>
+          <td>Log audit untuk setiap perpindahan/mutasi stok barang antar kondisi. Mencatat siapa yang melakukan mutasi (nullable), dari kondisi apa ke apa, dan jumlahnya. Append-only log table.</td>
+        </tr>
+        <tr>
+          <td>log</td>
+          <td>id, userId, action, description, old_value, new_value, created_at</td>
+          <td>Catatan audit trail seluruh aktivitas sistem (CREATE_USER, DELETE_USER, RESET_PASSWORD, APPROVE_REQUEST, REJECT_REQUEST). Menyimpan old_value dan new_value dalam JSON untuk tracking perubahan data. Append-only audit log.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 40px; padding: 20px; background-color: #F0F7FF; border-left: 4px solid #2C3E50; border-radius: 4px;">
+      <h3 style="color: #2C3E50; margin-bottom: 10px;">📌 Catatan Relasi Database:</h3>
+      <ul style="color: #555; line-height: 1.8;">
+        <li><strong>Primary Key (PK):</strong> Setiap entitas memiliki id sebagai primary key</li>
+        <li><strong>Foreign Key (FK):</strong> Relasi antar entitas melalui FK dengan ON DELETE CASCADE / ON DELETE SET NULL</li>
+        <li><strong>ENUM Types:</strong>
+          <ul style="margin-top: 8px;">
+            <li>user.role: 'superadmin', 'admin', 'user'</li>
+            <li>item.category: 'Persenjataan', 'Amunisi', 'Kendaraan Militer'</li>
+            <li>item.condition: 'Aktif', 'Digunakan', 'Rusak', 'Perbaikan', 'Cadangan', 'Habis'</li>
+            <li>request.status: 'pending', 'approved', 'rejected', 'completed'</li>
+            <li>repair.status: 'pending', 'in_progress', 'completed'</li>
+            <li>return.conditionAfter: 'Aktif', 'Rusak', 'Perbaikan'</li>
+          </ul>
+        </li>
+        <li><strong>Indexes:</strong> Dibuat pada kolom yang sering di-query (unitId, role, condition, status, userId, itemId, created_at)</li>
+        <li><strong>Timestamps:</strong> Setiap entitas mencatat created_at dan updated_at untuk tracking perubahan (kecuali log tables yang hanya append)</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

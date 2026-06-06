@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Use Case Diagram - Sistem Manajemen Gudang Militer</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 30px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      padding: 20px;
+      max-width: 1150px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+    svg {
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎖️ Use Case Diagram - Sistem Manajemen Gudang Militer</h1>
+
+  <svg width="1100" height="740" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 740">
+    <defs>
+      <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#666"/>
+      </marker>
+      <marker id="arrowhead-include" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#999"/>
+      </marker>
+    </defs>
+
+    <!-- System boundary -->
+    <rect x="140" y="30" width="820" height="670" fill="#FAFAFA" stroke="#333" stroke-width="2.5" rx="5"/>
+
+    <!-- Title -->
+    <text x="550" y="55" text-anchor="middle" font-size="15" font-weight="bold" fill="#1a1a1a">
+      Sistem Manajemen Gudang Militer
+    </text>
+
+    <!-- ============ USE CASES ============ -->
+
+    <!-- LOGIN (Kuning, shared by all) -->
+    <ellipse cx="540" cy="105" rx="85" ry="28" fill="#FFEB3B" stroke="#F57F17" stroke-width="2"/>
+    <text x="540" y="102" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Login ke</text>
+    <text x="540" y="116" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Sistem</text>
+
+    <!-- ============ SUPER ADMIN USE CASES (Biru) ============ -->
+
+    <ellipse cx="280" cy="180" rx="92" ry="28" fill="#BBDEFB" stroke="#1565C0" stroke-width="2"/>
+    <text x="280" y="174" text-anchor="middle" font-size="10" fill="#0D47A1">Monitoring</text>
+    <text x="280" y="189" text-anchor="middle" font-size="10" fill="#0D47A1">Inventaris Nasional</text>
+
+    <ellipse cx="280" cy="255" rx="92" ry="28" fill="#BBDEFB" stroke="#1565C0" stroke-width="2"/>
+    <text x="280" y="249" text-anchor="middle" font-size="10" fill="#0D47A1">Lihat & Export</text>
+    <text x="280" y="264" text-anchor="middle" font-size="10" fill="#0D47A1">Laporan Nasional</text>
+
+    <ellipse cx="280" cy="330" rx="92" ry="28" fill="#BBDEFB" stroke="#1565C0" stroke-width="2"/>
+    <text x="280" y="324" text-anchor="middle" font-size="10" fill="#0D47A1">Kelola Data</text>
+    <text x="280" y="339" text-anchor="middle" font-size="10" fill="#0D47A1">Satuan Militer</text>
+
+    <ellipse cx="280" cy="405" rx="92" ry="28" fill="#BBDEFB" stroke="#1565C0" stroke-width="2"/>
+    <text x="280" y="399" text-anchor="middle" font-size="10" fill="#0D47A1">Buat & Kelola</text>
+    <text x="280" y="414" text-anchor="middle" font-size="10" fill="#0D47A1">Akun Admin per Satuan</text>
+
+    <ellipse cx="280" cy="480" rx="92" ry="28" fill="#BBDEFB" stroke="#1565C0" stroke-width="2"/>
+    <text x="280" y="483" text-anchor="middle" font-size="10" fill="#0D47A1">Lihat Audit Log</text>
+
+    <!-- ============ ADMIN SATUAN USE CASES (Hijau) ============ -->
+
+    <ellipse cx="540" cy="190" rx="92" ry="28" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"/>
+    <text x="540" y="184" text-anchor="middle" font-size="10" fill="#1B5E20">Kelola Data</text>
+    <text x="540" y="199" text-anchor="middle" font-size="10" fill="#1B5E20">Barang Inventaris</text>
+
+    <ellipse cx="540" cy="270" rx="92" ry="28" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"/>
+    <text x="540" y="264" text-anchor="middle" font-size="10" fill="#1B5E20">Ubah Status &</text>
+    <text x="540" y="279" text-anchor="middle" font-size="10" fill="#1B5E20">Kondisi Barang</text>
+
+    <ellipse cx="540" cy="350" rx="92" ry="28" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"/>
+    <text x="540" y="344" text-anchor="middle" font-size="10" fill="#1B5E20">Setujui atau Tolak</text>
+    <text x="540" y="359" text-anchor="middle" font-size="10" fill="#1B5E20">Permintaan Barang</text>
+
+    <ellipse cx="540" cy="425" rx="92" ry="28" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"/>
+    <text x="540" y="419" text-anchor="middle" font-size="10" fill="#1B5E20">Lihat Riwayat</text>
+    <text x="540" y="434" text-anchor="middle" font-size="10" fill="#1B5E20">Penggunaan Barang</text>
+
+    <ellipse cx="540" cy="500" rx="92" ry="28" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"/>
+    <text x="540" y="503" text-anchor="middle" font-size="10" fill="#1B5E20">Kelola Data Gudang</text>
+
+    <!-- ============ USER USE CASES (Merah Muda) ============ -->
+
+    <ellipse cx="800" cy="230" rx="92" ry="28" fill="#FFCDD2" stroke="#C62828" stroke-width="2"/>
+    <text x="800" y="224" text-anchor="middle" font-size="10" fill="#B71C1C">Lihat Daftar &</text>
+    <text x="800" y="239" text-anchor="middle" font-size="10" fill="#B71C1C">Stok Barang</text>
+
+    <ellipse cx="800" cy="310" rx="92" ry="28" fill="#FFCDD2" stroke="#C62828" stroke-width="2"/>
+    <text x="800" y="302" text-anchor="middle" font-size="10" fill="#B71C1C">Ajukan Permintaan</text>
+    <text x="800" y="317" text-anchor="middle" font-size="10" fill="#B71C1C">Penggunaan Barang</text>
+
+    <ellipse cx="800" cy="390" rx="92" ry="28" fill="#FFCDD2" stroke="#C62828" stroke-width="2"/>
+    <text x="800" y="393" text-anchor="middle" font-size="10" fill="#B71C1C">Lihat Status</text>
+    <text x="800" y="408" text-anchor="middle" font-size="10" fill="#B71C1C">Permintaan</text>
+
+    <ellipse cx="800" cy="465" rx="92" ry="28" fill="#FFCDD2" stroke="#C62828" stroke-width="2"/>
+    <text x="800" y="459" text-anchor="middle" font-size="10" fill="#B71C1C">Terima Notifikasi</text>
+    <text x="800" y="474" text-anchor="middle" font-size="10" fill="#B71C1C">Persetujuan/Penolakan</text>
+
+    <ellipse cx="800" cy="545" rx="92" ry="28" fill="#FFCDD2" stroke="#C62828" stroke-width="2"/>
+    <text x="800" y="541" text-anchor="middle" font-size="10" fill="#B71C1C">Kembalikan Barang</text>
+    <text x="800" y="556" text-anchor="middle" font-size="10" fill="#B71C1C">ke Gudang</text>
+
+    <!-- Include relationship -->
+    <line x1="800" y1="282" x2="800" y2="258" stroke="#999" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowhead-include)"/>
+    <text x="815" y="272" font-size="9" fill="#666" font-weight="bold">«include»</text>
+
+    <!-- ============ ACTORS ============ -->
+
+    <!-- Super Admin (Kiri Atas) -->
+    <circle cx="65" cy="215" r="15" fill="white" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="230" x2="65" y2="275" stroke="#333" stroke-width="2"/>
+    <line x1="35" y1="250" x2="95" y2="250" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="275" x2="40" y2="305" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="275" x2="90" y2="305" stroke="#333" stroke-width="2"/>
+    <text x="65" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Super</text>
+    <text x="65" y="335" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Admin</text>
+
+    <!-- Admin Satuan (Kiri Bawah) -->
+    <circle cx="65" cy="490" r="15" fill="white" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="505" x2="65" y2="550" stroke="#333" stroke-width="2"/>
+    <line x1="35" y1="525" x2="95" y2="525" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="550" x2="40" y2="580" stroke="#333" stroke-width="2"/>
+    <line x1="65" y1="550" x2="90" y2="580" stroke="#333" stroke-width="2"/>
+    <text x="65" y="595" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Admin</text>
+    <text x="65" y="610" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Satuan</text>
+
+    <!-- Personel Militer / User (Kanan) -->
+    <circle cx="1040" cy="375" r="15" fill="white" stroke="#333" stroke-width="2"/>
+    <line x1="1040" y1="390" x2="1040" y2="435" stroke="#333" stroke-width="2"/>
+    <line x1="1010" y1="410" x2="1070" y2="410" stroke="#333" stroke-width="2"/>
+    <line x1="1040" y1="435" x2="1015" y2="465" stroke="#333" stroke-width="2"/>
+    <line x1="1040" y1="435" x2="1065" y2="465" stroke="#333" stroke-width="2"/>
+    <text x="1040" y="480" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Personel</text>
+    <text x="1040" y="495" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Militer</text>
+    <text x="1040" y="510" text-anchor="middle" font-size="10" fill="#666">(User)</text>
+
+    <!-- ============ CONNECTION LINES ============ -->
+
+    <!-- Super Admin → Login -->
+    <line x1="80" y1="208" x2="455" y2="105" stroke="#555" stroke-width="1"/>
+
+    <!-- Super Admin → Blue UCs -->
+    <line x1="80" y1="215" x2="188" y2="180" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="220" x2="188" y2="255" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="225" x2="188" y2="330" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="230" x2="188" y2="405" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="235" x2="188" y2="480" stroke="#555" stroke-width="1"/>
+
+    <!-- Super Admin → Green UCs (superadmin dapat melakukan task admin) -->
+    <line x1="80" y1="218" x2="448" y2="190" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="223" x2="448" y2="270" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="228" x2="448" y2="350" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="233" x2="448" y2="425" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="238" x2="448" y2="500" stroke="#555" stroke-width="1"/>
+
+    <!-- Admin Satuan → Login -->
+    <line x1="80" y1="483" x2="455" y2="120" stroke="#555" stroke-width="1"/>
+
+    <!-- Admin Satuan → Green UCs -->
+    <line x1="80" y1="490" x2="448" y2="190" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="495" x2="448" y2="270" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="500" x2="448" y2="350" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="505" x2="448" y2="425" stroke="#555" stroke-width="1"/>
+    <line x1="80" y1="510" x2="448" y2="500" stroke="#555" stroke-width="1"/>
+
+    <!-- User → Login -->
+    <line x1="1025" y1="365" x2="625" y2="107" stroke="#555" stroke-width="1"/>
+
+    <!-- User → Pink UCs -->
+    <line x1="1025" y1="375" x2="892" y2="230" stroke="#555" stroke-width="1"/>
+    <line x1="1025" y1="378" x2="892" y2="310" stroke="#555" stroke-width="1"/>
+    <line x1="1025" y1="381" x2="892" y2="390" stroke="#555" stroke-width="1"/>
+    <line x1="1025" y1="384" x2="892" y2="465" stroke="#555" stroke-width="1"/>
+    <line x1="1025" y1="387" x2="892" y2="545" stroke="#555" stroke-width="1"/>
+
+    <!-- ============ LEGEND ============ -->
+    <text x="160" y="655" font-size="11" font-weight="bold" fill="#333">Keterangan:</text>
+
+    <!-- Legend items -->
+    <ellipse cx="230" cy="675" rx="55" ry="15" fill="#BBDEFB" stroke="#1565C0" stroke-width="1.5"/>
+    <text x="230" y="680" text-anchor="middle" font-size="9" fill="#0D47A1" font-weight="bold">Use Case Super Admin</text>
+
+    <ellipse cx="365" cy="675" rx="60" ry="15" fill="#C8E6C9" stroke="#2E7D32" stroke-width="1.5"/>
+    <text x="365" y="680" text-anchor="middle" font-size="9" fill="#1B5E20" font-weight="bold">Use Case Admin Satuan</text>
+
+    <ellipse cx="510" cy="675" rx="65" ry="15" fill="#FFCDD2" stroke="#C62828" stroke-width="1.5"/>
+    <text x="510" y="680" text-anchor="middle" font-size="9" fill="#B71C1C" font-weight="bold">Use Case User/Personel</text>
+
+    <ellipse cx="655" cy="675" rx="60" ry="15" fill="#FFEB3B" stroke="#F57F17" stroke-width="1.5"/>
+    <text x="655" y="680" text-anchor="middle" font-size="9" fill="#F57F17" font-weight="bold">Use Case Bersama (Login)</text>
+  </svg>
+</div>
+</body>
+</html>
