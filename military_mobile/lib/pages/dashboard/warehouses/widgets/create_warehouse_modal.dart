@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../config/theme.dart';
 import '../../../../controllers/warehouses_controller.dart';
+import '../../../../models/unit.dart';
 
 class CreateWarehouseModal extends StatefulWidget {
   final WarehousesController controller;
+  final List<Unit> units;
 
   const CreateWarehouseModal({
     super.key,
     required this.controller,
+    required this.units,
   });
 
   @override
@@ -16,38 +19,37 @@ class CreateWarehouseModal extends StatefulWidget {
 }
 
 class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
-  late TextEditingController _idController;
   late TextEditingController _nameController;
-  late TextEditingController _locationController;
-  late TextEditingController _capacityController;
+  String? _selectedUnitId;
 
   @override
   void initState() {
     super.initState();
-    _idController = TextEditingController();
     _nameController = TextEditingController();
-    _locationController = TextEditingController();
-    _capacityController = TextEditingController();
+    if (widget.units.isNotEmpty) {
+      _selectedUnitId = widget.units.first.id;
+    }
   }
 
   @override
   void dispose() {
-    _idController.dispose();
     _nameController.dispose();
-    _locationController.dispose();
-    _capacityController.dispose();
     super.dispose();
   }
 
-  void _handleSubmit() {
-    widget.controller.createWarehouse(
-      id: _idController.text,
+  void _handleSubmit() async {
+    if (_selectedUnitId == null) {
+      widget.controller.errorMessage.value = 'Pilih unit terlebih dahulu';
+      return;
+    }
+    widget.controller.errorMessage.value = null;
+
+    await widget.controller.createWarehouse(
       name: _nameController.text,
-      location: _locationController.text,
-      capacity: int.tryParse(_capacityController.text) ?? 0,
+      unitId: _selectedUnitId!,
     );
 
-    if (widget.controller.errorMessage.value == null) {
+    if (widget.controller.errorMessage.value == null && mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -68,7 +70,7 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Create Warehouse',
+                    'Tambah Gudang',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -83,18 +85,9 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
                 ],
               ),
               const SizedBox(height: 20),
-              _buildTextField(_idController, 'Warehouse Code', 'e.g., WH-01'),
+              _buildTextField(_nameController, 'Nama Gudang', 'cth. Gudang Utama'),
               const SizedBox(height: 16),
-              _buildTextField(_nameController, 'Warehouse Name', 'e.g., Main Storage'),
-              const SizedBox(height: 16),
-              _buildTextField(_locationController, 'Location', 'e.g., Jakarta'),
-              const SizedBox(height: 16),
-              _buildTextField(
-                _capacityController,
-                'Capacity',
-                'e.g., 1000',
-                keyboardType: TextInputType.number,
-              ),
+              _buildUnitDropdown(),
               const SizedBox(height: 20),
               Obx(
                 () => widget.controller.errorMessage.value != null
@@ -103,9 +96,7 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
                         decoration: BoxDecoration(
                           color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           widget.controller.errorMessage.value ?? '',
@@ -124,24 +115,20 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
                         side: BorderSide(color: AppTheme.border),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text('Batal'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Obx(
                       () => ElevatedButton(
-                        onPressed: widget.controller.isCreating.value
-                            ? null
-                            : _handleSubmit,
+                        onPressed: widget.controller.isCreating.value ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(
-                          widget.controller.isCreating.value
-                              ? 'Creating...'
-                              : 'Create',
+                          widget.controller.isCreating.value ? 'Menyimpan...' : 'Simpan',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -156,12 +143,7 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    String hint, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String label, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,10 +155,9 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
             color: AppTheme.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextField(
           controller: controller,
-          keyboardType: keyboardType,
           style: TextStyle(color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
@@ -191,8 +172,61 @@ class _CreateWarehouseModalState extends State<CreateWarehouseModal> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AppTheme.border),
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildUnitDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Unit',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        widget.units.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  'Tidak ada unit tersedia',
+                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                ),
+              )
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: DropdownButton<String>(
+                  value: _selectedUnitId,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.darkCard,
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  underline: const SizedBox.shrink(),
+                  items: widget.units
+                      .map((u) => DropdownMenuItem<String>(
+                            value: u.id,
+                            child: Text(u.name),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedUnitId = v),
+                ),
+              ),
       ],
     );
   }

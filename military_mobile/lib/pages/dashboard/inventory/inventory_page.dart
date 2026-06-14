@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../config/theme.dart';
 import '../../../controllers/inventory_controller.dart';
+import '../../../controllers/warehouses_controller.dart';
+import '../../../models/item.dart';
 import 'widgets/inventory_list_item.dart';
 import 'widgets/create_inventory_modal.dart';
 import 'widgets/edit_inventory_modal.dart';
 import 'widgets/delete_inventory_dialog.dart';
 
 class InventoryPage extends StatelessWidget {
-  final _inventoryController = Get.put(InventoryController());
+  final InventoryController _inventoryController = Get.put(InventoryController());
+  final WarehousesController _warehousesController = Get.isRegistered<WarehousesController>()
+      ? Get.find<WarehousesController>()
+      : Get.put(WarehousesController());
 
   InventoryPage({super.key});
 
@@ -46,12 +51,11 @@ class InventoryPage extends StatelessWidget {
       body: Obx(
         () {
           if (_inventoryController.isLoading.value && _inventoryController.items.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          if (_inventoryController.errorMessage.value != null && _inventoryController.items.isEmpty) {
+          if (_inventoryController.errorMessage.value != null &&
+              _inventoryController.items.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +63,7 @@ class InventoryPage extends StatelessWidget {
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    _inventoryController.errorMessage.value ?? 'Failed to load inventory',
+                    _inventoryController.errorMessage.value ?? 'Gagal memuat inventory',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.red),
                   ),
@@ -67,7 +71,7 @@ class InventoryPage extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: () => _inventoryController.fetchItems(),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
+                    label: const Text('Coba Lagi'),
                   ),
                 ],
               ),
@@ -82,14 +86,14 @@ class InventoryPage extends StatelessWidget {
                   const Icon(Icons.inbox, size: 48, color: Colors.grey),
                   const SizedBox(height: 16),
                   const Text(
-                    'No inventory items found',
+                    'Belum ada item inventory',
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () => _showCreateModal(context),
                     icon: const Icon(Icons.add),
-                    label: const Text('Add Item'),
+                    label: const Text('Tambah Item'),
                   ),
                 ],
               ),
@@ -107,7 +111,7 @@ class InventoryPage extends StatelessWidget {
                 return InventoryListItem(
                   item: item,
                   onEdit: () => _showEditModal(context, item),
-                  onDelete: () => _showDeleteDialog(context, item.id),
+                  onDelete: () => _showDeleteDialog(context, item),
                 );
               },
             ),
@@ -120,26 +124,31 @@ class InventoryPage extends StatelessWidget {
   void _showCreateModal(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => CreateInventoryModal(controller: _inventoryController),
+      builder: (context) => CreateInventoryModal(
+        controller: _inventoryController,
+        warehouses: _warehousesController.warehouses,
+      ),
     );
   }
 
-  void _showEditModal(BuildContext context, dynamic item) {
+  void _showEditModal(BuildContext context, Item item) {
     showDialog(
       context: context,
       builder: (context) => EditInventoryModal(
         controller: _inventoryController,
         item: item,
+        warehouses: _warehousesController.warehouses,
       ),
     );
   }
 
-  void _showDeleteDialog(BuildContext context, String itemId) {
+  void _showDeleteDialog(BuildContext context, Item item) {
     showDialog(
       context: context,
       builder: (context) => DeleteInventoryDialog(
         controller: _inventoryController,
-        itemId: itemId,
+        itemId: item.id,
+        itemName: item.name,
       ),
     );
   }

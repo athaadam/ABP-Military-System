@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../config/theme.dart';
-import '../../../../models/inventory_item.dart';
+import '../../../../models/item.dart';
 
 class InventoryListItem extends StatelessWidget {
-  final InventoryItem item;
+  final Item item;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -14,9 +14,28 @@ class InventoryListItem extends StatelessWidget {
     required this.onDelete,
   });
 
+  Color _conditionColor(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'aktif':
+        return Colors.green;
+      case 'digunakan':
+        return Colors.blue;
+      case 'rusak':
+        return Colors.red;
+      case 'perbaikan':
+        return Colors.orange;
+      case 'cadangan':
+        return Colors.purple;
+      case 'habis':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final statusColor = item.isLowStock ? Colors.orange : Colors.green;
+    final conditionColor = _conditionColor(item.condition);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -40,7 +59,7 @@ class InventoryListItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      item.code,
+                      item.category,
                       style: TextStyle(
                         color: AppTheme.textTertiary,
                         fontSize: 12,
@@ -53,52 +72,49 @@ class InventoryListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${item.quantity} ${item.unit}',
+                    'Stok: ${item.stock}',
                     style: TextStyle(
-                      color: statusColor,
+                      color: item.stock <= 0 ? Colors.red : AppTheme.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    item.isLowStock ? 'Low Stock!' : 'In Stock',
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 11,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: conditionColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.condition,
+                      style: TextStyle(
+                        color: conditionColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkSurface,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  item.category,
+          if (item.warehouseName != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.warehouse_outlined, size: 13, color: AppTheme.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  item.warehouseName!,
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.textTertiary,
                     fontSize: 11,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Min: ${item.minStock}',
-                style: TextStyle(
-                  color: AppTheme.textTertiary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

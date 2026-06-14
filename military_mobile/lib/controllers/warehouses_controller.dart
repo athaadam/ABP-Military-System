@@ -23,137 +23,93 @@ class WarehousesController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = null;
-
-      final warehouseList = await _warehouseService.getAll();
-      warehouses.value = warehouseList;
+      warehouses.value = await _warehouseService.getAll();
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to fetch warehouses');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal memuat gudang');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> createWarehouse({
-    required String id,
     required String name,
-    required String location,
-    required int capacity,
+    required String unitId,
   }) async {
     try {
       isCreating.value = true;
       errorMessage.value = null;
-      successMessage.value = null;
 
-      final normalizedId = id.trim().toUpperCase();
       final normalizedName = name.trim();
-      final normalizedLocation = location.trim();
+      final normalizedUnitId = unitId.trim();
 
-      if (normalizedId.isEmpty || normalizedName.isEmpty || normalizedLocation.isEmpty) {
-        errorMessage.value = 'All fields are required';
+      if (normalizedName.isEmpty || normalizedUnitId.isEmpty) {
+        errorMessage.value = 'Nama gudang dan Unit ID wajib diisi';
         return;
       }
 
-      if (capacity <= 0) {
-        errorMessage.value = 'Capacity must be greater than 0';
-        return;
-      }
+      await _warehouseService.create(name: normalizedName, unitId: normalizedUnitId);
 
-      await _warehouseService.create(
-        id: normalizedId,
-        name: normalizedName,
-        location: normalizedLocation,
-        capacity: capacity,
-      );
-
-      successMessage.value = 'Warehouse created successfully';
+      successMessage.value = 'Gudang berhasil dibuat';
       await fetchWarehouses();
-
-      Get.snackbar('Success', 'Warehouse created successfully');
+      Get.snackbar('Berhasil', 'Gudang berhasil dibuat');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to create warehouse');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal membuat gudang');
     } finally {
       isCreating.value = false;
     }
   }
 
   Future<void> updateWarehouse({
-    required String id,
-    required String name,
-    required String location,
-    required int capacity,
+    required int id,
+    String? name,
+    String? unitId,
   }) async {
     try {
       isUpdating.value = true;
       errorMessage.value = null;
-      successMessage.value = null;
 
-      final normalizedName = name.trim();
-      final normalizedLocation = location.trim();
-
-      if (normalizedName.isEmpty || normalizedLocation.isEmpty) {
-        errorMessage.value = 'All fields are required';
+      final normalizedName = name?.trim();
+      if (normalizedName?.isEmpty == true) {
+        errorMessage.value = 'Nama gudang tidak boleh kosong';
         return;
       }
 
-      if (capacity <= 0) {
-        errorMessage.value = 'Capacity must be greater than 0';
-        return;
-      }
+      await _warehouseService.update(id, name: normalizedName, unitId: unitId?.trim());
 
-      await _warehouseService.update(
-        id,
-        name: normalizedName,
-        location: normalizedLocation,
-        capacity: capacity,
-      );
-
-      successMessage.value = 'Warehouse updated successfully';
+      successMessage.value = 'Gudang berhasil diupdate';
       await fetchWarehouses();
-
-      Get.snackbar('Success', 'Warehouse updated successfully');
+      Get.snackbar('Berhasil', 'Gudang berhasil diupdate');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to update warehouse');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal mengupdate gudang');
     } finally {
       isUpdating.value = false;
     }
   }
 
-  Future<void> deleteWarehouse(String id) async {
+  Future<void> deleteWarehouse(int id) async {
     try {
       isDeleting.value = true;
       errorMessage.value = null;
-
       await _warehouseService.delete(id);
-
       await fetchWarehouses();
-      Get.snackbar('Success', 'Warehouse deleted successfully');
+      Get.snackbar('Berhasil', 'Gudang berhasil dihapus');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to delete warehouse');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal menghapus gudang');
     } finally {
       isDeleting.value = false;
     }
   }
 
-  String? _getErrorMessage(dynamic error) {
-    if (error is Exception) {
-      final message = error.toString();
-
-      if (message.contains('401')) {
-        return 'Unauthorized access';
-      } else if (message.contains('404')) {
-        return 'Warehouse not found';
-      } else if (message.contains('409')) {
-        return 'Warehouse code already exists';
-      } else if (message.contains('Connection refused')) {
-        return 'Cannot connect to server';
-      }
-
-      return message;
-    }
-    return null;
+  String _getErrorMessage(dynamic error) {
+    final msg = error.toString();
+    if (msg.contains('401')) return 'Akses tidak diizinkan';
+    if (msg.contains('403')) return 'Admin hanya dapat mengelola gudang di unit mereka';
+    if (msg.contains('404')) return 'Gudang tidak ditemukan';
+    if (msg.contains('Connection refused')) return 'Tidak dapat terhubung ke server';
+    return msg;
   }
 }

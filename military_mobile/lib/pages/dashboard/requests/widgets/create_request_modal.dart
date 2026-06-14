@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../config/theme.dart';
 import '../../../../controllers/requests_controller.dart';
+import '../../../../models/item.dart';
 
 class CreateRequestModal extends StatefulWidget {
   final RequestsController controller;
+  final List<Item> items;
 
   const CreateRequestModal({
     super.key,
     required this.controller,
+    required this.items,
   });
 
   @override
@@ -16,42 +19,41 @@ class CreateRequestModal extends StatefulWidget {
 }
 
 class _CreateRequestModalState extends State<CreateRequestModal> {
-  late TextEditingController _itemIdController;
-  late TextEditingController _itemNameController;
   late TextEditingController _quantityController;
-  late TextEditingController _unitController;
   late TextEditingController _reasonController;
+  int? _selectedItemId;
 
   @override
   void initState() {
     super.initState();
-    _itemIdController = TextEditingController();
-    _itemNameController = TextEditingController();
-    _quantityController = TextEditingController(text: '0');
-    _unitController = TextEditingController(text: 'pcs');
+    _quantityController = TextEditingController(text: '1');
     _reasonController = TextEditingController();
+    if (widget.items.isNotEmpty) {
+      _selectedItemId = widget.items.first.id;
+    }
   }
 
   @override
   void dispose() {
-    _itemIdController.dispose();
-    _itemNameController.dispose();
     _quantityController.dispose();
-    _unitController.dispose();
     _reasonController.dispose();
     super.dispose();
   }
 
-  void _handleSubmit() {
-    widget.controller.createRequest(
-      itemId: _itemIdController.text,
-      itemName: _itemNameController.text,
-      quantity: int.tryParse(_quantityController.text) ?? 0,
-      unit: _unitController.text,
+  void _handleSubmit() async {
+    if (_selectedItemId == null) {
+      widget.controller.errorMessage.value = 'Pilih item terlebih dahulu';
+      return;
+    }
+    widget.controller.errorMessage.value = null;
+
+    await widget.controller.createRequest(
+      itemId: _selectedItemId!,
+      quantity: int.tryParse(_quantityController.text) ?? 1,
       reason: _reasonController.text,
     );
 
-    if (widget.controller.errorMessage.value == null) {
+    if (widget.controller.errorMessage.value == null && mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -72,7 +74,7 @@ class _CreateRequestModalState extends State<CreateRequestModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'New Request',
+                    'Buat Permintaan',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -87,31 +89,19 @@ class _CreateRequestModalState extends State<CreateRequestModal> {
                 ],
               ),
               const SizedBox(height: 20),
-              _buildTextField(_itemIdController, 'Item ID', 'e.g., ITEM-001'),
+              _buildItemDropdown(),
               const SizedBox(height: 12),
-              _buildTextField(_itemNameController, 'Item Name', 'e.g., Rifle'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      _quantityController,
-                      'Quantity',
-                      '0',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(_unitController, 'Unit', 'pcs'),
-                  ),
-                ],
+              _buildTextField(
+                _quantityController,
+                'Jumlah',
+                '1',
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               _buildTextField(
                 _reasonController,
-                'Reason',
-                'Why do you need this?',
+                'Alasan',
+                'Kenapa Anda membutuhkan ini?',
                 maxLines: 3,
               ),
               const SizedBox(height: 20),
@@ -141,24 +131,20 @@ class _CreateRequestModalState extends State<CreateRequestModal> {
                         side: BorderSide(color: AppTheme.border),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text('Batal'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Obx(
                       () => ElevatedButton(
-                        onPressed: widget.controller.isCreating.value
-                            ? null
-                            : _handleSubmit,
+                        onPressed: widget.controller.isCreating.value ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(
-                          widget.controller.isCreating.value
-                              ? 'Creating...'
-                              : 'Create Request',
+                          widget.controller.isCreating.value ? 'Mengirim...' : 'Kirim',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -170,6 +156,61 @@ class _CreateRequestModalState extends State<CreateRequestModal> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildItemDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Item',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        widget.items.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  'Tidak ada item tersedia',
+                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                ),
+              )
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: DropdownButton<int>(
+                  value: _selectedItemId,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.darkCard,
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  underline: const SizedBox.shrink(),
+                  items: widget.items
+                      .map((item) => DropdownMenuItem<int>(
+                            value: item.id,
+                            child: Text(
+                              '${item.name} (stok: ${item.stock})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedItemId = v),
+                ),
+              ),
+      ],
     );
   }
 

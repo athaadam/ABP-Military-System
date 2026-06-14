@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../config/theme.dart';
-import '../../../../controllers/warehouses_controller.dart';
+import '../../../../controllers/users_controller.dart';
 
-class DeleteWarehouseDialog extends StatelessWidget {
-  final WarehousesController controller;
-  final int warehouseId;
-  final String warehouseName;
+class DeleteUserDialog extends StatelessWidget {
+  final UsersController controller;
+  final int userId;
+  final String userName;
 
-  const DeleteWarehouseDialog({
+  const DeleteUserDialog({
     super.key,
     required this.controller,
-    required this.warehouseId,
-    required this.warehouseName,
+    required this.userId,
+    required this.userName,
   });
 
   void _handleDelete() {
-    controller.deleteWarehouse(warehouseId);
+    controller.deleteUser(userId);
     Navigator.of(Get.context!).pop();
   }
 
@@ -25,7 +25,7 @@ class DeleteWarehouseDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: AppTheme.darkCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -35,12 +35,8 @@ class DeleteWarehouseDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Hapus Gudang',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  'Hapus User',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -54,16 +50,13 @@ class DeleteWarehouseDialog extends StatelessWidget {
               text: TextSpan(
                 children: [
                   const TextSpan(
-                    text: 'Yakin ingin menghapus gudang ',
+                    text: 'Yakin ingin menghapus akun ',
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   TextSpan(
-                    text: warehouseName,
+                    text: userName,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const TextSpan(
                     text: '? Tindakan ini tidak dapat dibatalkan.',
@@ -73,22 +66,18 @@ class DeleteWarehouseDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Obx(
-              () => controller.errorMessage.value != null
-                  ? Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        controller.errorMessage.value ?? '',
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
+            Obx(() => controller.errorMessage.value != null
+                ? Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(controller.errorMessage.value ?? '',
+                        style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  )
+                : const SizedBox.shrink()),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -104,19 +93,17 @@ class DeleteWarehouseDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Obx(
-                    () => ElevatedButton(
-                      onPressed: controller.isDeleting.value ? null : _handleDelete,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        controller.isDeleting.value ? 'Menghapus...' : 'Hapus',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
+                  child: Obx(() => ElevatedButton(
+                        onPressed: controller.isDeleting.value ? null : _handleDelete,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          controller.isDeleting.value ? 'Menghapus...' : 'Hapus',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      )),
                 ),
               ],
             ),

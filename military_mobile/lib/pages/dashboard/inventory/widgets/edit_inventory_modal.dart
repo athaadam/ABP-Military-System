@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../config/theme.dart';
 import '../../../../controllers/inventory_controller.dart';
-import '../../../../models/inventory_item.dart';
+import '../../../../models/item.dart';
+import '../../../../models/warehouse.dart';
 
 class EditInventoryModal extends StatefulWidget {
   final InventoryController controller;
-  final InventoryItem item;
+  final Item item;
+  final List<Warehouse> warehouses;
 
   const EditInventoryModal({
     super.key,
     required this.controller,
     required this.item,
+    required this.warehouses,
   });
 
   @override
@@ -20,46 +23,51 @@ class EditInventoryModal extends StatefulWidget {
 
 class _EditInventoryModalState extends State<EditInventoryModal> {
   late TextEditingController _nameController;
-  late TextEditingController _categoryController;
-  late TextEditingController _quantityController;
-  late TextEditingController _unitController;
-  late TextEditingController _minStockController;
-  late TextEditingController _warehouseIdController;
+  late TextEditingController _stockController;
+  late String _selectedCategory;
+  late String _selectedCondition;
+  late int _selectedWarehouseId;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.item.name);
-    _categoryController = TextEditingController(text: widget.item.category);
-    _quantityController = TextEditingController(text: widget.item.quantity.toString());
-    _unitController = TextEditingController(text: widget.item.unit);
-    _minStockController = TextEditingController(text: widget.item.minStock.toString());
-    _warehouseIdController = TextEditingController(text: widget.item.warehouseId);
+    _stockController = TextEditingController(text: widget.item.stock.toString());
+
+    _selectedCategory = InventoryController.categories.contains(widget.item.category)
+        ? widget.item.category
+        : InventoryController.categories.first;
+
+    _selectedCondition = InventoryController.conditions.contains(widget.item.condition)
+        ? widget.item.condition
+        : InventoryController.conditions.first;
+
+    final match = widget.warehouses.any((w) => w.id == widget.item.warehouseId);
+    _selectedWarehouseId = match
+        ? widget.item.warehouseId
+        : (widget.warehouses.isNotEmpty ? widget.warehouses.first.id : widget.item.warehouseId);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _categoryController.dispose();
-    _quantityController.dispose();
-    _unitController.dispose();
-    _minStockController.dispose();
-    _warehouseIdController.dispose();
+    _stockController.dispose();
     super.dispose();
   }
 
-  void _handleSubmit() {
-    widget.controller.updateItem(
+  void _handleSubmit() async {
+    widget.controller.errorMessage.value = null;
+
+    await widget.controller.updateItem(
       id: widget.item.id,
       name: _nameController.text,
-      category: _categoryController.text,
-      quantity: int.tryParse(_quantityController.text) ?? widget.item.quantity,
-      unit: _unitController.text,
-      minStock: int.tryParse(_minStockController.text) ?? widget.item.minStock,
-      warehouseId: _warehouseIdController.text,
+      category: _selectedCategory,
+      stock: int.tryParse(_stockController.text) ?? widget.item.stock,
+      condition: _selectedCondition,
+      warehouseId: _selectedWarehouseId,
     );
 
-    if (widget.controller.errorMessage.value == null) {
+    if (widget.controller.errorMessage.value == null && mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -95,35 +103,38 @@ class _EditInventoryModalState extends State<EditInventoryModal> {
                 ],
               ),
               const SizedBox(height: 20),
-              _buildReadOnlyField('Item Code', widget.item.code),
+              _buildTextField(_nameController, 'Nama Item'),
               const SizedBox(height: 12),
-              _buildTextField(_nameController, 'Item Name'),
-              const SizedBox(height: 12),
-              _buildTextField(_categoryController, 'Category'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      _quantityController,
-                      'Quantity',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTextField(_unitController, 'Unit'),
-                  ),
-                ],
+              _buildDropdown<String>(
+                label: 'Kategori',
+                value: _selectedCategory,
+                items: InventoryController.categories,
+                itemLabel: (c) => c,
+                onChanged: (v) => setState(() => _selectedCategory = v ?? _selectedCategory),
               ),
               const SizedBox(height: 12),
               _buildTextField(
-                _minStockController,
-                'Minimum Stock',
+                _stockController,
+                'Stok',
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
-              _buildTextField(_warehouseIdController, 'Warehouse ID'),
+              _buildDropdown<String>(
+                label: 'Kondisi',
+                value: _selectedCondition,
+                items: InventoryController.conditions,
+                itemLabel: (c) => c,
+                onChanged: (v) => setState(() => _selectedCondition = v ?? _selectedCondition),
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<int>(
+                label: 'Gudang',
+                value: _selectedWarehouseId,
+                items: widget.warehouses.map((w) => w.id).toList(),
+                itemLabel: (id) => widget.warehouses.firstWhere((w) => w.id == id).name,
+                onChanged: (v) => setState(() => _selectedWarehouseId = v ?? _selectedWarehouseId),
+                emptyHint: 'Tidak ada gudang tersedia',
+              ),
               const SizedBox(height: 20),
               Obx(
                 () => widget.controller.errorMessage.value != null
@@ -151,24 +162,20 @@ class _EditInventoryModalState extends State<EditInventoryModal> {
                         side: BorderSide(color: AppTheme.border),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text('Batal'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Obx(
                       () => ElevatedButton(
-                        onPressed: widget.controller.isUpdating.value
-                            ? null
-                            : _handleSubmit,
+                        onPressed: widget.controller.isUpdating.value ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(
-                          widget.controller.isUpdating.value
-                              ? 'Updating...'
-                              : 'Update',
+                          widget.controller.isUpdating.value ? 'Menyimpan...' : 'Simpan',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -180,35 +187,6 @@ class _EditInventoryModalState extends State<EditInventoryModal> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildReadOnlyField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.darkSurface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(color: AppTheme.textSecondary),
-          ),
-        ),
-      ],
     );
   }
 
@@ -247,6 +225,65 @@ class _EditInventoryModalState extends State<EditInventoryModal> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    required String Function(T) itemLabel,
+    required void Function(T?) onChanged,
+    String? emptyHint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        items.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  emptyHint ?? 'Tidak ada pilihan',
+                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                ),
+              )
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: DropdownButton<T>(
+                  value: value,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.darkCard,
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  underline: const SizedBox.shrink(),
+                  items: items
+                      .map((item) => DropdownMenuItem<T>(
+                            value: item,
+                            child: Text(itemLabel(item)),
+                          ))
+                      .toList(),
+                  onChanged: onChanged,
+                ),
+              ),
       ],
     );
   }

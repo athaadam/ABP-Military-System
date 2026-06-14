@@ -4,103 +4,48 @@ import 'api_service.dart';
 class RequestService {
   final ApiService _apiService = ApiService();
 
-  Future<List<RequestModel>> getAll() async {
-    try {
-      final response = await _apiService.get('/requests');
-      final List<dynamic> data = response.data as List<dynamic>? ?? [];
-      return data.map((item) => RequestModel.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (e) {
-      rethrow;
-    }
+  List<RequestModel> _parseList(dynamic responseData) {
+    final map = responseData as Map<String, dynamic>;
+    final list = map['data'] as List<dynamic>? ?? [];
+    return list.map((e) => RequestModel.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<RequestModel> getById(String id) async {
-    try {
-      final response = await _apiService.get('/requests/$id');
-      return RequestModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+  Future<List<RequestModel>> getMyRequests() async {
+    final response = await _apiService.get<Map<String, dynamic>>('/requests/my');
+    return _parseList(response.data);
   }
 
-  Future<RequestModel> create({
-    required String itemId,
-    required String itemName,
+  Future<List<RequestModel>> getPendingRequests() async {
+    final response = await _apiService.get<Map<String, dynamic>>('/requests/pending/list');
+    return _parseList(response.data);
+  }
+
+  Future<RequestModel> getById(int id) async {
+    final response = await _apiService.get<Map<String, dynamic>>('/requests/$id');
+    final map = response.data as Map<String, dynamic>;
+    return RequestModel.fromJson(map['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> create({
+    required int itemId,
     required int quantity,
-    required String unit,
     required String reason,
   }) async {
-    try {
-      final response = await _apiService.post(
-        '/requests',
-        data: {
-          'item_id': itemId,
-          'item_name': itemName,
-          'quantity': quantity,
-          'unit': unit,
-          'reason': reason,
-        },
-      );
-      return RequestModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+    await _apiService.post(
+      '/requests',
+      data: {
+        'itemId': itemId,
+        'quantity': quantity,
+        'reason': reason,
+      },
+    );
   }
 
-  Future<RequestModel> update(
-    String id, {
-    required String itemId,
-    required String itemName,
-    required int quantity,
-    required String unit,
-    required String reason,
-  }) async {
-    try {
-      final response = await _apiService.put(
-        '/requests/$id',
-        data: {
-          'item_id': itemId,
-          'item_name': itemName,
-          'quantity': quantity,
-          'unit': unit,
-          'reason': reason,
-        },
-      );
-      return RequestModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+  Future<void> approve(int id) async {
+    await _apiService.patch('/requests/$id/approve', data: {});
   }
 
-  Future<RequestModel> approve(String id) async {
-    try {
-      final response = await _apiService.put(
-        '/requests/$id/approve',
-        data: {},
-      );
-      return RequestModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<RequestModel> reject(String id) async {
-    try {
-      final response = await _apiService.put(
-        '/requests/$id/reject',
-        data: {},
-      );
-      return RequestModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> delete(String id) async {
-    try {
-      await _apiService.delete('/requests/$id');
-    } catch (e) {
-      rethrow;
-    }
+  Future<void> reject(int id) async {
+    await _apiService.patch('/requests/$id/reject', data: {});
   }
 }

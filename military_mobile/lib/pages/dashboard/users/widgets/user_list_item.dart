@@ -1,21 +1,49 @@
 import 'package:flutter/material.dart';
 import '../../../../config/theme.dart';
-import '../../../../models/warehouse.dart';
+import '../../../../models/user.dart';
 
-class WarehouseListItem extends StatelessWidget {
-  final Warehouse warehouse;
+class UserListItem extends StatelessWidget {
+  final User user;
+  final String unitName;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onResetPassword;
 
-  const WarehouseListItem({
+  const UserListItem({
     super.key,
-    required this.warehouse,
+    required this.user,
+    required this.unitName,
     required this.onEdit,
     required this.onDelete,
+    required this.onResetPassword,
   });
+
+  Color _roleColor(String role) {
+    switch (role) {
+      case 'superadmin':
+        return Colors.purple;
+      case 'admin':
+        return Colors.blue;
+      default:
+        return Colors.green;
+    }
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'superadmin':
+        return 'Super Admin';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'User';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final roleColor = _roleColor(user.role);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -29,30 +57,20 @@ class WarehouseListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      warehouse.name,
+                      user.name,
                       style: TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.business_outlined,
-                          size: 13,
-                          color: AppTheme.textTertiary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          warehouse.unitName ?? warehouse.unitId,
-                          style: TextStyle(
-                            color: AppTheme.textTertiary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 2),
+                    Text(
+                      user.email,
+                      style: TextStyle(
+                        color: AppTheme.textTertiary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -60,16 +78,28 @@ class WarehouseListItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.darkSurface,
+                  color: roleColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'ID: ${warehouse.id}',
+                  _roleLabel(user.role),
                   style: TextStyle(
-                    color: AppTheme.textTertiary,
+                    color: roleColor,
                     fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.business_outlined, size: 13, color: AppTheme.textTertiary),
+              const SizedBox(width: 4),
+              Text(
+                unitName,
+                style: TextStyle(color: AppTheme.textTertiary, fontSize: 12),
               ),
             ],
           ),
@@ -77,6 +107,13 @@ class WarehouseListItem extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              _ActionButton(
+                icon: Icons.lock_reset,
+                label: 'Reset',
+                onPressed: onResetPassword,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 8),
               _ActionButton(
                 icon: Icons.edit,
                 label: 'Edit',
@@ -86,7 +123,7 @@ class WarehouseListItem extends StatelessWidget {
               const SizedBox(width: 8),
               _ActionButton(
                 icon: Icons.delete,
-                label: 'Delete',
+                label: 'Hapus',
                 onPressed: onDelete,
                 color: Colors.red,
               ),
@@ -115,12 +152,12 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 16),
-      label: Text(label),
+      icon: Icon(icon, size: 14),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
         side: BorderSide(color: color.withValues(alpha: 0.3)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       ),
     );
   }

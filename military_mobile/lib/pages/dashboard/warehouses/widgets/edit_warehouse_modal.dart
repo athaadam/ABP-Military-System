@@ -3,15 +3,18 @@ import 'package:get/get.dart';
 import '../../../../config/theme.dart';
 import '../../../../controllers/warehouses_controller.dart';
 import '../../../../models/warehouse.dart';
+import '../../../../models/unit.dart';
 
 class EditWarehouseModal extends StatefulWidget {
   final WarehousesController controller;
   final Warehouse warehouse;
+  final List<Unit> units;
 
   const EditWarehouseModal({
     super.key,
     required this.controller,
     required this.warehouse,
+    required this.units,
   });
 
   @override
@@ -20,34 +23,34 @@ class EditWarehouseModal extends StatefulWidget {
 
 class _EditWarehouseModalState extends State<EditWarehouseModal> {
   late TextEditingController _nameController;
-  late TextEditingController _locationController;
-  late TextEditingController _capacityController;
+  late String _selectedUnitId;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.warehouse.name);
-    _locationController = TextEditingController(text: widget.warehouse.location);
-    _capacityController = TextEditingController(text: widget.warehouse.capacity.toString());
+    final match = widget.units.any((u) => u.id == widget.warehouse.unitId);
+    _selectedUnitId = match
+        ? widget.warehouse.unitId
+        : (widget.units.isNotEmpty ? widget.units.first.id : widget.warehouse.unitId);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _locationController.dispose();
-    _capacityController.dispose();
     super.dispose();
   }
 
-  void _handleSubmit() {
-    widget.controller.updateWarehouse(
+  void _handleSubmit() async {
+    widget.controller.errorMessage.value = null;
+
+    await widget.controller.updateWarehouse(
       id: widget.warehouse.id,
       name: _nameController.text,
-      location: _locationController.text,
-      capacity: int.tryParse(_capacityController.text) ?? widget.warehouse.capacity,
+      unitId: _selectedUnitId,
     );
 
-    if (widget.controller.errorMessage.value == null) {
+    if (widget.controller.errorMessage.value == null && mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -68,7 +71,7 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Edit Warehouse',
+                    'Edit Gudang',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -83,49 +86,9 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
                 ],
               ),
               const SizedBox(height: 20),
-              Text(
-                'Warehouse Code',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkSurface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Text(
-                  widget.warehouse.id,
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Warehouse code cannot be changed',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textTertiary,
-                ),
-              ),
+              _buildTextField(_nameController, 'Nama Gudang'),
               const SizedBox(height: 16),
-              _buildTextField(_nameController, 'Warehouse Name', 'Enter warehouse name'),
-              const SizedBox(height: 16),
-              _buildTextField(_locationController, 'Location', 'Enter location'),
-              const SizedBox(height: 16),
-              _buildTextField(
-                _capacityController,
-                'Capacity',
-                'Enter capacity',
-                keyboardType: TextInputType.number,
-              ),
+              _buildUnitDropdown(),
               const SizedBox(height: 20),
               Obx(
                 () => widget.controller.errorMessage.value != null
@@ -134,9 +97,7 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
                         decoration: BoxDecoration(
                           color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           widget.controller.errorMessage.value ?? '',
@@ -155,24 +116,20 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
                         side: BorderSide(color: AppTheme.border),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text('Batal'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Obx(
                       () => ElevatedButton(
-                        onPressed: widget.controller.isUpdating.value
-                            ? null
-                            : _handleSubmit,
+                        onPressed: widget.controller.isUpdating.value ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(
-                          widget.controller.isUpdating.value
-                              ? 'Updating...'
-                              : 'Update',
+                          widget.controller.isUpdating.value ? 'Menyimpan...' : 'Simpan',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -187,12 +144,7 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    String hint, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -204,14 +156,11 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
             color: AppTheme.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextField(
           controller: controller,
-          keyboardType: keyboardType,
           style: TextStyle(color: AppTheme.textPrimary),
           decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: AppTheme.textTertiary),
             filled: true,
             fillColor: AppTheme.darkSurface,
             border: OutlineInputBorder(
@@ -222,8 +171,61 @@ class _EditWarehouseModalState extends State<EditWarehouseModal> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: AppTheme.border),
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildUnitDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Unit',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        widget.units.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  'Tidak ada unit tersedia',
+                  style: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                ),
+              )
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: DropdownButton<String>(
+                  value: _selectedUnitId,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.darkCard,
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  underline: const SizedBox.shrink(),
+                  items: widget.units
+                      .map((u) => DropdownMenuItem<String>(
+                            value: u.id,
+                            child: Text(u.name),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedUnitId = v ?? _selectedUnitId),
+                ),
+              ),
       ],
     );
   }

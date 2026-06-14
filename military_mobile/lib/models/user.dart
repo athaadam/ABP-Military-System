@@ -1,47 +1,49 @@
 class User {
-  final String id;
-  final String email;
+  final int id;
   final String name;
+  final String email;
   final String role;
-  final String? unitId;
-  final bool isActive;
-  final DateTime createdAt;
+  final String unitId;
+  final String? createdAt;
+  final String? updatedAt;
 
   User({
     required this.id,
-    required this.email,
     required this.name,
+    required this.email,
     required this.role,
-    this.unitId,
-    required this.isActive,
-    required this.createdAt,
+    required this.unitId,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id']?.toString() ?? '',
-      email: json['email'] as String? ?? '',
+      id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? '',
-      role: json['role'] as String? ?? '',
-      unitId: json['unitId'] as String?,
-      isActive: json['isActive'] as bool? ?? true,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
-          : DateTime.now(),
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String? ?? 'user',
+      unitId: json['unitId'] as String? ?? '',
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'email': email,
       'name': name,
+      'email': email,
       'role': role,
       'unitId': unitId,
-      'isActive': isActive,
-      'createdAt': createdAt.toIso8601String(),
+      'created_at': createdAt,
+      'updated_at': updatedAt,
     };
   }
+
+  bool get isSuperAdmin => role == 'superadmin';
+  bool get isAdmin => role == 'admin';
+  bool get isUser => role == 'user';
 }
 
 class AuthResponse {

@@ -13,7 +13,7 @@ class CustomButton extends StatelessWidget {
   final EdgeInsets padding;
 
   const CustomButton({
-    Key? key,
+    super.key,
     required this.label,
     this.onPressed,
     this.variant = ButtonVariant.primary,
@@ -21,7 +21,7 @@ class CustomButton extends StatelessWidget {
     this.fullWidth = false,
     this.icon,
     this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-  }) : super(key: key);
+  });
 
   Color get _backgroundColor {
     switch (variant) {
@@ -52,7 +52,7 @@ class CustomButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: _backgroundColor,
         foregroundColor: _foregroundColor,
-        disabledBackgroundColor: AppTheme.border.withOpacity(0.5),
+        disabledBackgroundColor: AppTheme.border.withValues(alpha: 0.5),
         padding: padding,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),

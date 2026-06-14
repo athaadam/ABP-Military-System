@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../controllers/auth_controller.dart';
 import '../models/request_model.dart';
 import '../services/request_service.dart';
 
@@ -8,12 +9,21 @@ class RequestsController extends GetxController {
   final requests = <RequestModel>[].obs;
   final isLoading = false.obs;
   final isCreating = false.obs;
-  final isUpdating = false.obs;
-  final isDeleting = false.obs;
   final isApproving = false.obs;
   final isRejecting = false.obs;
   final errorMessage = Rx<String?>(null);
   final successMessage = Rx<String?>(null);
+
+  String get _userRole {
+    try {
+      final auth = Get.find<AuthController>();
+      return auth.user.value?.role ?? 'user';
+    } catch (_) {
+      return 'user';
+    }
+  }
+
+  bool get isAdminScope => _userRole == 'admin' || _userRole == 'superadmin';
 
   @override
   void onInit() {
@@ -26,168 +36,92 @@ class RequestsController extends GetxController {
       isLoading.value = true;
       errorMessage.value = null;
 
-      final requestList = await _requestService.getAll();
-      requests.value = requestList;
+      if (isAdminScope) {
+        requests.value = await _requestService.getPendingRequests();
+      } else {
+        requests.value = await _requestService.getMyRequests();
+      }
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to fetch requests');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal memuat requests');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> createRequest({
-    required String itemId,
-    required String itemName,
+    required int itemId,
     required int quantity,
-    required String unit,
     required String reason,
   }) async {
     try {
       isCreating.value = true;
       errorMessage.value = null;
-      successMessage.value = null;
 
-      final normalizedItemName = itemName.trim();
       final normalizedReason = reason.trim();
-
-      if (normalizedItemName.isEmpty || normalizedReason.isEmpty) {
-        errorMessage.value = 'Item name and reason are required';
+      if (normalizedReason.isEmpty) {
+        errorMessage.value = 'Alasan permintaan wajib diisi';
         return;
       }
-
       if (quantity <= 0) {
-        errorMessage.value = 'Quantity must be greater than 0';
+        errorMessage.value = 'Jumlah harus lebih dari 0';
         return;
       }
 
       await _requestService.create(
         itemId: itemId,
-        itemName: normalizedItemName,
         quantity: quantity,
-        unit: unit,
         reason: normalizedReason,
       );
 
-      successMessage.value = 'Request created successfully';
+      successMessage.value = 'Permintaan berhasil dibuat';
       await fetchRequests();
-      Get.snackbar('Success', 'Request created successfully');
+      Get.snackbar('Berhasil', 'Permintaan berhasil dibuat');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to create request');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal membuat permintaan');
     } finally {
       isCreating.value = false;
     }
   }
 
-  Future<void> updateRequest({
-    required String id,
-    required String itemId,
-    required String itemName,
-    required int quantity,
-    required String unit,
-    required String reason,
-  }) async {
-    try {
-      isUpdating.value = true;
-      errorMessage.value = null;
-      successMessage.value = null;
-
-      final normalizedItemName = itemName.trim();
-      final normalizedReason = reason.trim();
-
-      if (normalizedItemName.isEmpty || normalizedReason.isEmpty) {
-        errorMessage.value = 'Item name and reason are required';
-        return;
-      }
-
-      if (quantity <= 0) {
-        errorMessage.value = 'Quantity must be greater than 0';
-        return;
-      }
-
-      await _requestService.update(
-        id,
-        itemId: itemId,
-        itemName: normalizedItemName,
-        quantity: quantity,
-        unit: unit,
-        reason: normalizedReason,
-      );
-
-      successMessage.value = 'Request updated successfully';
-      await fetchRequests();
-      Get.snackbar('Success', 'Request updated successfully');
-    } catch (e) {
-      errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to update request');
-    } finally {
-      isUpdating.value = false;
-    }
-  }
-
-  Future<void> approveRequest(String id) async {
+  Future<void> approveRequest(int id) async {
     try {
       isApproving.value = true;
       errorMessage.value = null;
-
       await _requestService.approve(id);
       await fetchRequests();
-      Get.snackbar('Success', 'Request approved successfully');
+      Get.snackbar('Berhasil', 'Permintaan disetujui');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to approve request');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal menyetujui permintaan');
     } finally {
       isApproving.value = false;
     }
   }
 
-  Future<void> rejectRequest(String id) async {
+  Future<void> rejectRequest(int id) async {
     try {
       isRejecting.value = true;
       errorMessage.value = null;
-
       await _requestService.reject(id);
       await fetchRequests();
-      Get.snackbar('Success', 'Request rejected successfully');
+      Get.snackbar('Berhasil', 'Permintaan ditolak');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to reject request');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal menolak permintaan');
     } finally {
       isRejecting.value = false;
     }
   }
 
-  Future<void> deleteRequest(String id) async {
-    try {
-      isDeleting.value = true;
-      errorMessage.value = null;
-
-      await _requestService.delete(id);
-      await fetchRequests();
-      Get.snackbar('Success', 'Request deleted successfully');
-    } catch (e) {
-      errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to delete request');
-    } finally {
-      isDeleting.value = false;
-    }
-  }
-
-  String? _getErrorMessage(dynamic error) {
-    if (error is Exception) {
-      final message = error.toString();
-
-      if (message.contains('401')) {
-        return 'Unauthorized access';
-      } else if (message.contains('404')) {
-        return 'Request not found';
-      } else if (message.contains('Connection refused')) {
-        return 'Cannot connect to server';
-      }
-
-      return message;
-    }
-    return null;
+  String _getErrorMessage(dynamic error) {
+    final msg = error.toString();
+    if (msg.contains('401')) return 'Akses tidak diizinkan';
+    if (msg.contains('403')) return 'Hanya admin yang dapat melakukan aksi ini';
+    if (msg.contains('404')) return 'Permintaan tidak ditemukan';
+    if (msg.contains('Insufficient stock')) return 'Stok tidak mencukupi';
+    if (msg.contains('Connection refused')) return 'Tidak dapat terhubung ke server';
+    return msg;
   }
 }

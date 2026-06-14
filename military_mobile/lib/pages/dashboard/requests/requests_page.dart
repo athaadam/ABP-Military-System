@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../config/theme.dart';
 import '../../../controllers/requests_controller.dart';
+import '../../../controllers/inventory_controller.dart';
 import 'widgets/request_list_item.dart';
 import 'widgets/create_request_modal.dart';
-import 'widgets/edit_request_modal.dart';
-import 'widgets/delete_request_dialog.dart';
 
 class RequestsPage extends StatelessWidget {
-  final _requestsController = Get.put(RequestsController());
+  final RequestsController _requestsController = Get.isRegistered<RequestsController>()
+      ? Get.find<RequestsController>()
+      : Get.put(RequestsController());
+  final InventoryController _inventoryController = Get.isRegistered<InventoryController>()
+      ? Get.find<InventoryController>()
+      : Get.put(InventoryController());
+
   final _statusFilter = Rx<String>('all');
 
   RequestsPage({super.key});
@@ -18,7 +23,9 @@ class RequestsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: const Text('Requests'),
+        title: Obx(
+          () => Text(_requestsController.isAdminScope ? 'Permintaan Pending' : 'Permintaan Saya'),
+        ),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
         actions: [
@@ -39,20 +46,23 @@ class RequestsPage extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.primary,
-        onPressed: () => _showCreateModal(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Obx(
+        () => _requestsController.isAdminScope
+            ? const SizedBox.shrink()
+            : FloatingActionButton(
+                backgroundColor: AppTheme.primary,
+                onPressed: () => _showCreateModal(context),
+                child: const Icon(Icons.add),
+              ),
       ),
       body: Obx(
         () {
           if (_requestsController.isLoading.value && _requestsController.requests.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          if (_requestsController.errorMessage.value != null && _requestsController.requests.isEmpty) {
+          if (_requestsController.errorMessage.value != null &&
+              _requestsController.requests.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -60,7 +70,7 @@ class RequestsPage extends StatelessWidget {
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    _requestsController.errorMessage.value ?? 'Failed to load requests',
+                    _requestsController.errorMessage.value ?? 'Gagal memuat permintaan',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.red),
                   ),
@@ -68,7 +78,7 @@ class RequestsPage extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: () => _requestsController.fetchRequests(),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
+                    label: const Text('Coba Lagi'),
                   ),
                 ],
               ),
@@ -88,16 +98,20 @@ class RequestsPage extends StatelessWidget {
                 children: [
                   const Icon(Icons.inbox, size: 48, color: Colors.grey),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No requests found',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    _requestsController.isAdminScope
+                        ? 'Tidak ada permintaan pending'
+                        : 'Belum ada permintaan',
+                    style: const TextStyle(color: Colors.grey),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => _showCreateModal(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create Request'),
-                  ),
+                  if (!_requestsController.isAdminScope) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => _showCreateModal(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Buat Permintaan'),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -108,21 +122,23 @@ class RequestsPage extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', 'all'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Pending', 'pending'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Approved', 'approved'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Rejected', 'rejected'),
-                    ],
+                if (!_requestsController.isAdminScope) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Semua', 'all'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Menunggu', 'pending'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Disetujui', 'approved'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Ditolak', 'rejected'),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -132,8 +148,7 @@ class RequestsPage extends StatelessWidget {
                     final request = filteredRequests[index];
                     return RequestListItem(
                       request: request,
-                      onEdit: () => _showEditModal(context, request),
-                      onDelete: () => _showDeleteDialog(context, request.id),
+                      isAdminScope: _requestsController.isAdminScope,
                       onApprove: () => _requestsController.approveRequest(request.id),
                       onReject: () => _requestsController.rejectRequest(request.id),
                     );
@@ -176,26 +191,9 @@ class RequestsPage extends StatelessWidget {
   void _showCreateModal(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => CreateRequestModal(controller: _requestsController),
-    );
-  }
-
-  void _showEditModal(BuildContext context, dynamic request) {
-    showDialog(
-      context: context,
-      builder: (context) => EditRequestModal(
+      builder: (context) => CreateRequestModal(
         controller: _requestsController,
-        request: request,
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, String requestId) {
-    showDialog(
-      context: context,
-      builder: (context) => DeleteRequestDialog(
-        controller: _requestsController,
-        requestId: requestId,
+        items: _inventoryController.items,
       ),
     );
   }

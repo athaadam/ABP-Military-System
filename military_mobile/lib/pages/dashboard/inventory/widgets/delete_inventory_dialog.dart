@@ -5,12 +5,14 @@ import '../../../../controllers/inventory_controller.dart';
 
 class DeleteInventoryDialog extends StatelessWidget {
   final InventoryController controller;
-  final String itemId;
+  final int itemId;
+  final String itemName;
 
   const DeleteInventoryDialog({
     super.key,
     required this.controller,
     required this.itemId,
+    required this.itemName,
   });
 
   void _handleDelete() {
@@ -33,7 +35,7 @@ class DeleteInventoryDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Delete Item',
+                  'Hapus Item',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -52,11 +54,11 @@ class DeleteInventoryDialog extends StatelessWidget {
               text: TextSpan(
                 children: [
                   const TextSpan(
-                    text: 'Are you sure you want to delete item ',
+                    text: 'Yakin ingin menghapus item ',
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   TextSpan(
-                    text: itemId,
+                    text: itemName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -64,7 +66,7 @@ class DeleteInventoryDialog extends StatelessWidget {
                     ),
                   ),
                   const TextSpan(
-                    text: '? This action cannot be undone.',
+                    text: '? Tindakan ini tidak dapat dibatalkan.',
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ],
@@ -97,7 +99,7 @@ class DeleteInventoryDialog extends StatelessWidget {
                       side: BorderSide(color: AppTheme.border),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Cancel'),
+                    child: const Text('Batal'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -110,7 +112,7 @@ class DeleteInventoryDialog extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        controller.isDeleting.value ? 'Deleting...' : 'Delete',
+                        controller.isDeleting.value ? 'Menghapus...' : 'Hapus',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),

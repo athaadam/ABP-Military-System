@@ -4,30 +4,53 @@ import '../../../../models/request_model.dart';
 
 class RequestListItem extends StatelessWidget {
   final RequestModel request;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
+  final bool isAdminScope;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
 
   const RequestListItem({
     super.key,
     required this.request,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onApprove,
-    required this.onReject,
+    required this.isAdminScope,
+    this.onApprove,
+    this.onReject,
   });
 
   Color _getStatusColor(String status) {
-    final s = status.toLowerCase();
-    if (s == 'approved') return Colors.green;
-    if (s == 'pending') return Colors.orange;
-    if (s == 'rejected') return Colors.red;
-    return AppTheme.textTertiary;
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'rejected':
+        return Colors.red;
+      case 'completed':
+        return Colors.blue;
+      default:
+        return AppTheme.textTertiary;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return 'Disetujui';
+      case 'pending':
+        return 'Menunggu';
+      case 'rejected':
+        return 'Ditolak';
+      case 'completed':
+        return 'Selesai';
+      default:
+        return status.toUpperCase();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = _getStatusColor(request.status);
+    final itemTitle = request.itemName ?? 'Item #${request.itemId}';
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -41,35 +64,37 @@ class RequestListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      request.itemName,
+                      itemTitle,
                       style: TextStyle(
                         color: AppTheme.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'ID: ${request.id}',
-                      style: TextStyle(
-                        color: AppTheme.textTertiary,
-                        fontSize: 12,
+                    if (isAdminScope && request.userName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pemohon: ${request.userName}',
+                        style: TextStyle(
+                          color: AppTheme.textTertiary,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(request.status).withValues(alpha: 0.2),
-                  border: Border.all(color: _getStatusColor(request.status)),
+                  color: statusColor.withValues(alpha: 0.15),
+                  border: Border.all(color: statusColor),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  request.status.toUpperCase(),
+                  _statusLabel(request.status),
                   style: TextStyle(
-                    color: _getStatusColor(request.status),
+                    color: statusColor,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -82,7 +107,7 @@ class RequestListItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Qty: ${request.quantity} ${request.unit}',
+                'Jumlah: ${request.quantity}',
                 style: TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -98,52 +123,38 @@ class RequestListItem extends StatelessWidget {
             ],
           ),
           if (request.reason.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'Reason: ${request.reason}',
+              'Alasan: ${request.reason}',
               style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 11,
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (request.isPending) ...[
+          if (isAdminScope && request.isPending && onApprove != null && onReject != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
                 _ActionButton(
                   icon: Icons.check,
-                  label: 'Approve',
-                  onPressed: onApprove,
+                  label: 'Setujui',
+                  onPressed: onApprove!,
                   color: Colors.green,
                 ),
                 const SizedBox(width: 8),
                 _ActionButton(
                   icon: Icons.close,
-                  label: 'Reject',
-                  onPressed: onReject,
+                  label: 'Tolak',
+                  onPressed: onReject!,
                   color: Colors.red,
                 ),
-                const SizedBox(width: 8),
               ],
-              _ActionButton(
-                icon: Icons.edit,
-                label: 'Edit',
-                onPressed: onEdit,
-                color: AppTheme.primary,
-              ),
-              const SizedBox(width: 8),
-              _ActionButton(
-                icon: Icons.delete,
-                label: 'Delete',
-                onPressed: onDelete,
-                color: Colors.red,
-              ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );

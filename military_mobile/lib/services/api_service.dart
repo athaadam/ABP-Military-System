@@ -73,6 +73,18 @@ class ApiService {
     );
   }
 
+  Future<Response<T>> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return _dio.patch<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+    );
+  }
+
   Future<Response<T>> delete<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -83,33 +95,34 @@ class ApiService {
     );
   }
 
+  List<T> _parseList<T>(dynamic responseData, T Function(Map<String, dynamic>) fromJson) {
+    final map = responseData as Map<String, dynamic>;
+    final list = map['data'] as List<dynamic>? ?? [];
+    return list.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<List<Item>> fetchItems() async {
     final res = await get<Map<String, dynamic>>('/items');
-    final data = (res.data!['data'] as List<dynamic>);
-    return data.map((e) => Item.fromJson(e as Map<String, dynamic>)).toList();
+    return _parseList(res.data, Item.fromJson);
   }
 
   Future<List<RequestModel>> fetchMyRequests() async {
     final res = await get<Map<String, dynamic>>('/requests/my');
-    final data = (res.data!['data'] as List<dynamic>);
-    return data.map((e) => RequestModel.fromJson(e as Map<String, dynamic>)).toList();
+    return _parseList(res.data, RequestModel.fromJson);
   }
 
   Future<List<RequestModel>> fetchPendingRequests() async {
     final res = await get<Map<String, dynamic>>('/requests/pending/list');
-    final data = (res.data!['data'] as List<dynamic>);
-    return data.map((e) => RequestModel.fromJson(e as Map<String, dynamic>)).toList();
+    return _parseList(res.data, RequestModel.fromJson);
   }
 
   Future<List<Warehouse>> fetchWarehouses() async {
     final res = await get<Map<String, dynamic>>('/warehouses');
-    final data = (res.data!['data'] as List<dynamic>);
-    return data.map((e) => Warehouse.fromJson(e as Map<String, dynamic>)).toList();
+    return _parseList(res.data, Warehouse.fromJson);
   }
 
   Future<List<Unit>> fetchUnits() async {
     final res = await get<Map<String, dynamic>>('/units');
-    final data = (res.data!['data'] as List<dynamic>);
-    return data.map((e) => Unit.fromJson(e as Map<String, dynamic>)).toList();
+    return _parseList(res.data, Unit.fromJson);
   }
 }

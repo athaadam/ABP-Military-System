@@ -1,17 +1,20 @@
 import 'package:get/get.dart';
-import '../models/inventory_item.dart';
+import '../models/item.dart';
 import '../services/inventory_service.dart';
 
 class InventoryController extends GetxController {
   final _inventoryService = InventoryService();
 
-  final items = <InventoryItem>[].obs;
+  final items = <Item>[].obs;
   final isLoading = false.obs;
   final isCreating = false.obs;
   final isUpdating = false.obs;
   final isDeleting = false.obs;
   final errorMessage = Rx<String?>(null);
   final successMessage = Rx<String?>(null);
+
+  static const List<String> categories = ['Persenjataan', 'Amunisi', 'Kendaraan Militer'];
+  static const List<String> conditions = ['Aktif', 'Digunakan', 'Rusak', 'Perbaikan', 'Cadangan', 'Habis'];
 
   @override
   void onInit() {
@@ -23,12 +26,10 @@ class InventoryController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = null;
-
-      final itemList = await _inventoryService.getAll();
-      items.value = itemList;
+      items.value = await _inventoryService.getAll();
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to fetch inventory');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal memuat inventory');
     } finally {
       isLoading.value = false;
     }
@@ -36,146 +37,102 @@ class InventoryController extends GetxController {
 
   Future<void> createItem({
     required String name,
-    required String code,
     required String category,
-    required int quantity,
-    required String unit,
-    required int minStock,
-    required String warehouseId,
+    required int stock,
+    required String condition,
+    required int warehouseId,
   }) async {
     try {
       isCreating.value = true;
       errorMessage.value = null;
-      successMessage.value = null;
 
       final normalizedName = name.trim();
-      final normalizedCode = code.trim().toUpperCase();
-      final normalizedCategory = category.trim();
-
-      if (normalizedName.isEmpty || normalizedCode.isEmpty || normalizedCategory.isEmpty) {
-        errorMessage.value = 'Name, code, and category are required';
+      if (normalizedName.isEmpty) {
+        errorMessage.value = 'Nama item wajib diisi';
         return;
       }
-
-      if (quantity < 0) {
-        errorMessage.value = 'Quantity cannot be negative';
+      if (stock < 0) {
+        errorMessage.value = 'Stok tidak boleh negatif';
         return;
       }
-
-      if (minStock < 0) {
-        errorMessage.value = 'Minimum stock cannot be negative';
+      if (warehouseId <= 0) {
+        errorMessage.value = 'Pilih gudang yang valid';
         return;
       }
 
       await _inventoryService.create(
         name: normalizedName,
-        code: normalizedCode,
-        category: normalizedCategory,
-        quantity: quantity,
-        unit: unit,
-        minStock: minStock,
+        category: category,
+        stock: stock,
+        condition: condition,
         warehouseId: warehouseId,
       );
 
-      successMessage.value = 'Item created successfully';
+      successMessage.value = 'Item berhasil ditambahkan';
       await fetchItems();
-
-      Get.snackbar('Success', 'Item created successfully');
+      Get.snackbar('Berhasil', 'Item berhasil ditambahkan');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to create item');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal menambahkan item');
     } finally {
       isCreating.value = false;
     }
   }
 
   Future<void> updateItem({
-    required String id,
-    required String name,
-    required String category,
-    required int quantity,
-    required String unit,
-    required int minStock,
-    required String warehouseId,
+    required int id,
+    String? name,
+    String? category,
+    int? stock,
+    String? condition,
+    int? warehouseId,
   }) async {
     try {
       isUpdating.value = true;
       errorMessage.value = null;
-      successMessage.value = null;
-
-      final normalizedName = name.trim();
-      final normalizedCategory = category.trim();
-
-      if (normalizedName.isEmpty || normalizedCategory.isEmpty) {
-        errorMessage.value = 'Name and category are required';
-        return;
-      }
-
-      if (quantity < 0) {
-        errorMessage.value = 'Quantity cannot be negative';
-        return;
-      }
-
-      if (minStock < 0) {
-        errorMessage.value = 'Minimum stock cannot be negative';
-        return;
-      }
 
       await _inventoryService.update(
         id,
-        name: normalizedName,
-        category: normalizedCategory,
-        quantity: quantity,
-        unit: unit,
-        minStock: minStock,
+        name: name?.trim().isEmpty == true ? null : name?.trim(),
+        category: category,
+        stock: stock,
+        condition: condition,
         warehouseId: warehouseId,
       );
 
-      successMessage.value = 'Item updated successfully';
+      successMessage.value = 'Item berhasil diupdate';
       await fetchItems();
-
-      Get.snackbar('Success', 'Item updated successfully');
+      Get.snackbar('Berhasil', 'Item berhasil diupdate');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to update item');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal mengupdate item');
     } finally {
       isUpdating.value = false;
     }
   }
 
-  Future<void> deleteItem(String id) async {
+  Future<void> deleteItem(int id) async {
     try {
       isDeleting.value = true;
       errorMessage.value = null;
-
       await _inventoryService.delete(id);
-
       await fetchItems();
-      Get.snackbar('Success', 'Item deleted successfully');
+      Get.snackbar('Berhasil', 'Item berhasil dihapus');
     } catch (e) {
       errorMessage.value = _getErrorMessage(e);
-      Get.snackbar('Error', errorMessage.value ?? 'Failed to delete item');
+      Get.snackbar('Error', errorMessage.value ?? 'Gagal menghapus item');
     } finally {
       isDeleting.value = false;
     }
   }
 
-  String? _getErrorMessage(dynamic error) {
-    if (error is Exception) {
-      final message = error.toString();
-
-      if (message.contains('401')) {
-        return 'Unauthorized access';
-      } else if (message.contains('404')) {
-        return 'Item not found';
-      } else if (message.contains('409')) {
-        return 'Item code already exists';
-      } else if (message.contains('Connection refused')) {
-        return 'Cannot connect to server';
-      }
-
-      return message;
-    }
-    return null;
+  String _getErrorMessage(dynamic error) {
+    final msg = error.toString();
+    if (msg.contains('401')) return 'Akses tidak diizinkan';
+    if (msg.contains('403')) return 'Anda tidak memiliki akses ke gudang ini';
+    if (msg.contains('404')) return 'Item tidak ditemukan';
+    if (msg.contains('Connection refused')) return 'Tidak dapat terhubung ke server';
+    if (msg.contains('Insufficient stock')) return 'Stok tidak mencukupi';
+    return msg;
   }
 }

@@ -4,74 +4,55 @@ import 'api_service.dart';
 class WarehouseService {
   final ApiService _apiService = ApiService();
 
-  Future<List<Warehouse>> getAll() async {
-    try {
-      final response = await _apiService.get('/warehouses');
-
-      final List<dynamic> data = response.data as List<dynamic>? ?? [];
-      return data.map((warehouse) => Warehouse.fromJson(warehouse as Map<String, dynamic>)).toList();
-    } catch (e) {
-      rethrow;
-    }
+  List<Warehouse> _parseList(dynamic responseData) {
+    final map = responseData as Map<String, dynamic>;
+    final list = map['data'] as List<dynamic>? ?? [];
+    return list.map((e) => Warehouse.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Warehouse> getById(String id) async {
-    try {
-      final response = await _apiService.get('/warehouses/$id');
-      return Warehouse.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+  Warehouse _parseOne(dynamic responseData) {
+    final map = responseData as Map<String, dynamic>;
+    return Warehouse.fromJson(map['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<Warehouse>> getAll() async {
+    final response = await _apiService.get<Map<String, dynamic>>('/warehouses');
+    return _parseList(response.data);
+  }
+
+  Future<Warehouse> getById(int id) async {
+    final response = await _apiService.get<Map<String, dynamic>>('/warehouses/$id');
+    return _parseOne(response.data);
   }
 
   Future<Warehouse> create({
-    required String id,
     required String name,
-    required String location,
-    required int capacity,
+    required String unitId,
   }) async {
-    try {
-      final response = await _apiService.post(
-        '/warehouses',
-        data: {
-          'id': id,
-          'name': name,
-          'location': location,
-          'capacity': capacity,
-        },
-      );
-      return Warehouse.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+    final response = await _apiService.post<Map<String, dynamic>>(
+      '/warehouses',
+      data: {
+        'name': name,
+        'unitId': unitId,
+      },
+    );
+    return _parseOne(response.data);
   }
 
   Future<Warehouse> update(
-    String id, {
-    required String name,
-    required String location,
-    required int capacity,
+    int id, {
+    String? name,
+    String? unitId,
   }) async {
-    try {
-      final response = await _apiService.put(
-        '/warehouses/$id',
-        data: {
-          'name': name,
-          'location': location,
-          'capacity': capacity,
-        },
-      );
-      return Warehouse.fromJson(response.data as Map<String, dynamic>);
-    } catch (e) {
-      rethrow;
-    }
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (unitId != null) body['unitId'] = unitId;
+
+    final response = await _apiService.put<Map<String, dynamic>>('/warehouses/$id', data: body);
+    return _parseOne(response.data);
   }
 
-  Future<void> delete(String id) async {
-    try {
-      await _apiService.delete('/warehouses/$id');
-    } catch (e) {
-      rethrow;
-    }
+  Future<void> delete(int id) async {
+    await _apiService.delete('/warehouses/$id');
   }
 }

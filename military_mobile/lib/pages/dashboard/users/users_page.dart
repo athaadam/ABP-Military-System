@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../config/theme.dart';
-import '../../../controllers/warehouses_controller.dart';
-import '../../../controllers/units_controller.dart';
-import '../../../models/warehouse.dart';
-import 'widgets/warehouse_list_item.dart';
-import 'widgets/create_warehouse_modal.dart';
-import 'widgets/edit_warehouse_modal.dart';
-import 'widgets/delete_warehouse_dialog.dart';
+import '../../../controllers/users_controller.dart';
+import '../../../models/user.dart';
+import 'widgets/user_list_item.dart';
+import 'widgets/create_user_modal.dart';
+import 'widgets/edit_user_modal.dart';
+import 'widgets/delete_user_dialog.dart';
+import 'widgets/reset_password_dialog.dart';
 
-class WarehousesPage extends StatelessWidget {
-  final WarehousesController _warehousesController = Get.isRegistered<WarehousesController>()
-      ? Get.find<WarehousesController>()
-      : Get.put(WarehousesController());
-  final UnitsController _unitsController = Get.isRegistered<UnitsController>()
-      ? Get.find<UnitsController>()
-      : Get.put(UnitsController());
+class UsersPage extends StatelessWidget {
+  final UsersController _usersController = Get.isRegistered<UsersController>()
+      ? Get.find<UsersController>()
+      : Get.put(UsersController());
 
-  WarehousesPage({super.key});
+  UsersPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: const Text('Gudang'),
+        title: const Text('Manajemen User'),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
         actions: [
           Obx(
-            () => _warehousesController.isLoading.value
+            () => _usersController.isLoading.value
                 ? const Padding(
                     padding: EdgeInsets.all(16),
                     child: SizedBox(
@@ -40,7 +37,7 @@ class WarehousesPage extends StatelessWidget {
                   )
                 : IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: () => _warehousesController.fetchWarehouses(),
+                    onPressed: () => _usersController.fetchData(),
                   ),
           ),
         ],
@@ -48,17 +45,16 @@ class WarehousesPage extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.primary,
         onPressed: () => _showCreateModal(context),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.person_add),
       ),
       body: Obx(
         () {
-          if (_warehousesController.isLoading.value &&
-              _warehousesController.warehouses.isEmpty) {
+          if (_usersController.isLoading.value && _usersController.users.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (_warehousesController.errorMessage.value != null &&
-              _warehousesController.warehouses.isEmpty) {
+          if (_usersController.errorMessage.value != null &&
+              _usersController.users.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -66,13 +62,13 @@ class WarehousesPage extends StatelessWidget {
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    _warehousesController.errorMessage.value ?? 'Gagal memuat gudang',
+                    _usersController.errorMessage.value ?? 'Gagal memuat users',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.red),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    onPressed: () => _warehousesController.fetchWarehouses(),
+                    onPressed: () => _usersController.fetchData(),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Coba Lagi'),
                   ),
@@ -81,22 +77,22 @@ class WarehousesPage extends StatelessWidget {
             );
           }
 
-          if (_warehousesController.warehouses.isEmpty) {
+          if (_usersController.users.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.warehouse_outlined, size: 48, color: Colors.grey),
+                  const Icon(Icons.people_outline, size: 48, color: Colors.grey),
                   const SizedBox(height: 16),
                   const Text(
-                    'Belum ada gudang',
+                    'Belum ada user terdaftar',
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () => _showCreateModal(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Tambah Gudang'),
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Tambah Admin'),
                   ),
                 ],
               ),
@@ -104,17 +100,19 @@ class WarehousesPage extends StatelessWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () => _warehousesController.fetchWarehouses(),
+            onRefresh: () => _usersController.fetchData(),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: _warehousesController.warehouses.length,
+              itemCount: _usersController.users.length,
               separatorBuilder: (context, index) => Divider(color: AppTheme.border),
               itemBuilder: (context, index) {
-                final warehouse = _warehousesController.warehouses[index];
-                return WarehouseListItem(
-                  warehouse: warehouse,
-                  onEdit: () => _showEditModal(context, warehouse),
-                  onDelete: () => _showDeleteDialog(context, warehouse),
+                final user = _usersController.users[index];
+                return UserListItem(
+                  user: user,
+                  unitName: _usersController.getUnitName(user.unitId),
+                  onEdit: () => _showEditModal(context, user),
+                  onDelete: () => _showDeleteDialog(context, user),
+                  onResetPassword: () => _showResetPasswordDialog(context, user),
                 );
               },
             ),
@@ -127,31 +125,36 @@ class WarehousesPage extends StatelessWidget {
   void _showCreateModal(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => CreateWarehouseModal(
-        controller: _warehousesController,
-        units: _unitsController.units,
+      builder: (context) => CreateUserModal(controller: _usersController),
+    );
+  }
+
+  void _showEditModal(BuildContext context, User user) {
+    showDialog(
+      context: context,
+      builder: (context) => EditUserModal(controller: _usersController, user: user),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, User user) {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteUserDialog(
+        controller: _usersController,
+        userId: user.id,
+        userName: user.name,
       ),
     );
   }
 
-  void _showEditModal(BuildContext context, Warehouse warehouse) {
+  void _showResetPasswordDialog(BuildContext context, User user) {
+    _usersController.newPassword.value = null;
     showDialog(
       context: context,
-      builder: (context) => EditWarehouseModal(
-        controller: _warehousesController,
-        warehouse: warehouse,
-        units: _unitsController.units,
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, Warehouse warehouse) {
-    showDialog(
-      context: context,
-      builder: (context) => DeleteWarehouseDialog(
-        controller: _warehousesController,
-        warehouseId: warehouse.id,
-        warehouseName: warehouse.name,
+      builder: (context) => ResetPasswordDialog(
+        controller: _usersController,
+        userId: user.id,
+        userName: user.name,
       ),
     );
   }

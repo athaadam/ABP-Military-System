@@ -8,6 +8,8 @@ import 'requests/requests_page.dart';
 import 'statistics/statistics_page.dart';
 import 'units/units_page.dart';
 import 'warehouses/warehouses_page.dart';
+import 'users/users_page.dart';
+import 'settings/settings_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -32,11 +34,22 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadStats();
   }
 
+  bool get _isAdmin {
+    final role = _authController.user.value?.role ?? 'user';
+    return role == 'admin' || role == 'superadmin';
+  }
+
+  bool get _isSuperAdmin => _authController.user.value?.role == 'superadmin';
+
   Future<void> _loadStats() async {
     try {
+      final requestsFuture = _isAdmin
+          ? _api.fetchPendingRequests()
+          : _api.fetchMyRequests();
+
       final results = await Future.wait([
         _api.fetchItems(),
-        _api.fetchMyRequests(),
+        requestsFuture,
         _api.fetchWarehouses(),
         _api.fetchUnits(),
       ]);
@@ -63,6 +76,13 @@ class _DashboardPageState extends State<DashboardPage> {
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsPage()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _authController.logout(),
@@ -117,12 +137,22 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Obx(
+                        () => Text(
+                          _roleLabel(_authController.user.value?.role ?? 'user'),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                Text('Quick Stats', style: Theme.of(context).textTheme.titleLarge),
+                Text('Statistik', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
                 _loading
                     ? const Center(child: CircularProgressIndicator())
@@ -134,23 +164,38 @@ class _DashboardPageState extends State<DashboardPage> {
                         crossAxisSpacing: 12,
                         childAspectRatio: 1.2,
                         children: [
-                          _buildStatCard('Total Items', '$_totalItems', Icons.inventory_2),
-                          _buildStatCard('Requests', '$_totalRequests', Icons.request_page),
-                          _buildStatCard('Warehouses', '$_totalWarehouses', Icons.warehouse),
-                          _buildStatCard('Units', '$_totalUnits', Icons.business),
+                          _buildStatCard('Total Item', '$_totalItems', Icons.inventory_2),
+                          _buildStatCard(
+                            _isAdmin ? 'Permintaan Pending' : 'Permintaan Saya',
+                            '$_totalRequests',
+                            Icons.request_page,
+                          ),
+                          _buildStatCard('Gudang', '$_totalWarehouses', Icons.warehouse),
+                          _buildStatCard('Unit', '$_totalUnits', Icons.business),
                         ],
                       ),
                 const SizedBox(height: 24),
 
                 Text('Menu', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
-                _buildMenuList(),
+                _buildMenuList(context),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'superadmin':
+        return 'Super Admin';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'Anggota';
+    }
   }
 
   Widget _buildStatCard(String title, String value, IconData icon) {
@@ -186,13 +231,44 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildMenuList() {
-    final menuItems = [
-      {'label': 'Inventory', 'icon': Icons.inventory_2, 'page': const InventoryPage()},
-      {'label': 'Requests', 'icon': Icons.request_page, 'page': const RequestsPage()},
-      {'label': 'Statistics', 'icon': Icons.bar_chart, 'page': const StatisticsPage()},
-      {'label': 'Warehouses', 'icon': Icons.warehouse, 'page': const WarehousesPage()},
-      {'label': 'Units', 'icon': Icons.business, 'page': const UnitsPage()},
+  Widget _buildMenuList(BuildContext context) {
+    final menuItems = <Map<String, dynamic>>[
+      {
+        'label': 'Inventory',
+        'icon': Icons.inventory_2,
+        'builder': () => InventoryPage(),
+      },
+      {
+        'label': 'Permintaan',
+        'icon': Icons.request_page,
+        'builder': () => RequestsPage(),
+      },
+      {
+        'label': 'Statistik',
+        'icon': Icons.bar_chart,
+        'builder': () => const StatisticsPage(),
+      },
+      {
+        'label': 'Gudang',
+        'icon': Icons.warehouse,
+        'builder': () => WarehousesPage(),
+      },
+      {
+        'label': 'Unit',
+        'icon': Icons.business,
+        'builder': () => UnitsPage(),
+      },
+      if (_isSuperAdmin)
+        {
+          'label': 'Manajemen User',
+          'icon': Icons.people,
+          'builder': () => UsersPage(),
+        },
+      {
+        'label': 'Pengaturan',
+        'icon': Icons.settings,
+        'builder': () => const SettingsPage(),
+      },
     ];
 
     return ListView.separated(
@@ -211,7 +287,9 @@ class _DashboardPageState extends State<DashboardPage> {
           trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.textTertiary),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => item['page'] as Widget),
+            MaterialPageRoute(
+              builder: (context) => (item['builder'] as Widget Function())(),
+            ),
           ),
         );
       },
