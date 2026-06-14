@@ -1,0 +1,159 @@
+3.6 ARSITEKTUR SISTEM
+
+Sistem menggunakan arsitektur client-server berlapis dengan komponen sebagai berikut:
+
+KOMPONEN UTAMA SISTEM:
+
+1. Mobile App (Flutter/React Native)
+   - Digunakan oleh personel militer (User) untuk akses lapangan
+   - Fitur: Login, dashboard, inventory, request, statistics, units, warehouses
+   - Interface dark theme dengan aksen biru/purple
+   - Production-ready dengan ~1,800 baris kode berkualitas tinggi
+
+2. Web Dashboard (React/Next.js)
+   - Digunakan oleh Super Admin dan Admin Satuan
+   - Fitur: Manajemen user, reporting, analytics, konfigurasi sistem, audit trail
+
+3. REST API Gateway
+   - Titik komunikasi tunggal antara seluruh klien dengan backend
+   - Fungsi: Request routing, validation, response formatting, CORS handling
+   - Protokol: HTTP/REST dengan JSON payload
+
+4. Application Server (Node.js/Express.js)
+   - Menjalankan logika bisnis utama sistem
+   - Komponen: Authentication (JWT), business logic, data management, API endpoints
+   - Fitur: Validasi JWT token, session management, enkripsi data, error handling
+   - Autentikasi aman menggunakan JWT token
+
+5. Database Server (PostgreSQL)
+   - Menyimpan seluruh data sistem secara persisten
+   - Data: User info, inventory, requests, approvals, units, warehouses, configurations
+   - Fitur: ACID compliance, backup & recovery, indexed queries, complex transactions
+
+6. Audit Logger
+   - Modul khusus yang mencatat setiap aktivitas sistem untuk keamanan dan akuntabilitas
+   - Mencatat: Login/logout, data modifications, access attempts, errors, admin actions
+   - Tujuan: Security audit, accountability, compliance, troubleshooting
+
+
+ALUR KOMUNIKASI SISTEM:
+
+A. User Login Flow
+   User/Admin → Mobile/Web App
+   ↓ POST /auth/login (email, password)
+   REST API Gateway
+   ↓ Route ke /api/auth/login
+   Application Server (Express.js)
+   ↓ Validate credentials
+   PostgreSQL Database → Cek user & verify password
+   ↓ Hasil query
+   Application Server → Generate JWT token
+   Audit Logger → Log "User X login at TIME"
+   ↓ Return token + user data
+   Mobile/Web App → Login berhasil
+
+B. Data Retrieval Flow
+   User/Admin → Mobile/Web App
+   ↓ GET /api/inventory (dengan JWT token)
+   REST API Gateway
+   ↓ Validate token, route request
+   Application Server
+   ↓ Process request, query builder
+   PostgreSQL Database → Execute query, return results
+   ↓
+   Application Server → Format response
+   ↓ Display data
+   Mobile/Web App
+
+C. Data Modification Flow
+   User/Admin → Mobile/Web App
+   ↓ POST /api/requests (dengan data)
+   REST API Gateway
+   ↓ Route request
+   Application Server
+   ↓ Validate input, check authorization
+   PostgreSQL Database → Insert record
+   ↓ Return result
+   Audit Logger → Log "User X created request Y"
+   Application Server → Format response
+   ↓ Confirm + Refresh data
+   Mobile/Web App
+
+
+KARAKTERISTIK ARSITEKTUR:
+
+Pattern                : Client-Server (3-tier architecture)
+Komunikasi             : HTTP/REST dengan JSON
+Autentikasi            : JWT (JSON Web Token)
+Database               : PostgreSQL (relational)
+Skalabilitas           : Horizontal scalable di application layer
+Keamanan               : JWT auth, input validation, HTTPS recommended
+Logging                : Centralized audit logging
+Error Handling         : Terpusat di application server
+
+
+KEAMANAN SISTEM:
+
+1. Authentication      : JWT token-based untuk semua requests
+2. Authorization       : Role-based access control (RBAC) di application layer
+3. Data Protection     : Password hashing, encrypted sensitive data
+4. Audit Trail         : Setiap aktivitas dicatat untuk accountability
+5. Input Validation    : Server-side validation untuk cegah injection attacks
+6. HTTPS               : Enkripsi data in-transit (recommended production)
+
+
+DEPLOYMENT & SKALABILITAS:
+
+Horizontal Scaling     : App server dapat di-scale dengan load balancer
+Database Optimization  : Query indexing, connection pooling
+Caching               : Redis (opsional) untuk session & frequently accessed data
+CDN                   : Static assets via CDN untuk performa
+Monitoring            : PM2/systemd untuk process management & auto-restart
+Database Backup       : Automated backups ke storage eksternal
+Replication           : PostgreSQL streaming replication untuk high availability
+Failover              : Load balancer deteksi down server, route ke server lain
+
+
+TECHNOLOGY STACK:
+
+Layer               Teknologi                  Versi
+-------            ---------                  -----
+Mobile              Flutter                    Latest stable
+Web Frontend        React/Next.js              Latest LTS
+API                 Node.js + Express          18 LTS / 5.x
+Database            PostgreSQL                 14+
+Authentication      JWT                        Standard
+Deployment          Docker (optional)          Latest
+Monitoring          PM2/systemd                -
+
+
+FITUR SISTEM YANG DIDUKUNG:
+
+Untuk Mobile App (Flutter):
+  - Login dengan email & password validation
+  - Dashboard dengan welcome card & 4 stat cards (Items, Requests, Warehouses, Units)
+  - Inventory: List items dengan search, detail (name, code, qty, location)
+  - Requests: List dengan filters, status badges (Approved/Pending/Rejected)
+  - Statistics: Metric cards, interactive line chart
+  - Units: List dengan members count, Active/Inactive status
+  - Warehouses: List dengan capacity, progress bar utilization
+
+Untuk Web Dashboard (React/Next.js):
+  - User management & role assignment
+  - Reporting & analytics dashboards
+  - System configuration
+  - Audit trail viewing & search
+  - Data management & bulk operations
+
+
+SUMMARY:
+
+Sistem ABP Military dibangun dengan arsitektur modern client-server yang:
+✓ Terpisah jelas antara client, API, business logic, dan data layer
+✓ Menggunakan teknologi proven dan scalable (Node.js, PostgreSQL, Flutter, React)
+✓ Implementasi security best practices (JWT, RBAC, audit logging)
+✓ Support untuk multiple client interfaces (mobile & web)
+✓ Siap untuk production deployment dengan monitoring & failover capabilities
+✓ Mudah di-maintain dan di-extend untuk fitur baru
+
+Dokumentasi lengkap tersedia di ARCHITECTURE_DIAGRAM.md untuk diagram visual Mermaid.

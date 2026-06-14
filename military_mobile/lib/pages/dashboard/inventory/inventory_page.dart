@@ -1,154 +1,146 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../config/theme.dart';
+import '../../../controllers/inventory_controller.dart';
+import 'widgets/inventory_list_item.dart';
+import 'widgets/create_inventory_modal.dart';
+import 'widgets/edit_inventory_modal.dart';
+import 'widgets/delete_inventory_dialog.dart';
 
-class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+class InventoryPage extends StatelessWidget {
+  final _inventoryController = Get.put(InventoryController());
 
-  @override
-  State<InventoryPage> createState() => _InventoryPageState();
-}
-
-class _InventoryPageState extends State<InventoryPage> {
-  final _searchController = TextEditingController();
-  final _items = [
-    {'name': 'Rifle', 'code': 'RIF-001', 'qty': '150', 'location': 'Warehouse A'},
-    {'name': 'Ammunition', 'code': 'AMM-001', 'qty': '5000', 'location': 'Warehouse B'},
-    {'name': 'Helmet', 'code': 'HLM-001', 'qty': '300', 'location': 'Warehouse A'},
-    {'name': 'Vest', 'code': 'VST-001', 'qty': '200', 'location': 'Warehouse C'},
-  ];
+  InventoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: Text('Inventory'),
+        title: const Text('Inventory'),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
+        actions: [
+          Obx(
+            () => _inventoryController.isLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _inventoryController.fetchItems(),
+                  ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Bar
-            TextField(
-              controller: _searchController,
-              style: TextStyle(color: AppTheme.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Search items...',
-                hintStyle: TextStyle(color: AppTheme.textTertiary),
-                prefixIcon: Icon(Icons.search, color: AppTheme.textTertiary),
-                filled: true,
-                fillColor: AppTheme.darkSurface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.border),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        onPressed: () => _showCreateModal(context),
+        child: const Icon(Icons.add),
+      ),
+      body: Obx(
+        () {
+          if (_inventoryController.isLoading.value && _inventoryController.items.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-            // Items List
-            Text(
-              'All Items (${_items.length})',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _items.length,
+          if (_inventoryController.errorMessage.value != null && _inventoryController.items.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    _inventoryController.errorMessage.value ?? 'Failed to load inventory',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _inventoryController.fetchItems(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (_inventoryController.items.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inbox, size: 48, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No inventory items found',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCreateModal(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Item'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => _inventoryController.fetchItems(),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _inventoryController.items.length,
               separatorBuilder: (context, index) => Divider(color: AppTheme.border),
               itemBuilder: (context, index) {
-                final item = _items[index];
-                return Container(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['name']!,
-                                  style: TextStyle(
-                                    color: AppTheme.textPrimary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  item['code']!,
-                                  style: TextStyle(
-                                    color: AppTheme.textTertiary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                item['qty']!,
-                                style: TextStyle(
-                                  color: AppTheme.primary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Qty',
-                                style: TextStyle(
-                                  color: AppTheme.textTertiary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkSurface,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item['location']!,
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                final item = _inventoryController.items[index];
+                return InventoryListItem(
+                  item: item,
+                  onEdit: () => _showEditModal(context, item),
+                  onDelete: () => _showDeleteDialog(context, item.id),
                 );
               },
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _showCreateModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateInventoryModal(controller: _inventoryController),
+    );
+  }
+
+  void _showEditModal(BuildContext context, dynamic item) {
+    showDialog(
+      context: context,
+      builder: (context) => EditInventoryModal(
+        controller: _inventoryController,
+        item: item,
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, String itemId) {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteInventoryDialog(
+        controller: _inventoryController,
+        itemId: itemId,
+      ),
+    );
   }
 }

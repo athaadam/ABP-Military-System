@@ -1,119 +1,145 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../config/theme.dart';
+import '../../../controllers/warehouses_controller.dart';
+import 'widgets/warehouse_list_item.dart';
+import 'widgets/create_warehouse_modal.dart';
+import 'widgets/edit_warehouse_modal.dart';
+import 'widgets/delete_warehouse_dialog.dart';
 
 class WarehousesPage extends StatelessWidget {
-  const WarehousesPage({super.key});
+  final _warehousesController = Get.put(WarehousesController());
+
+  WarehousesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final warehouses = [
-      {'name': 'Warehouse A', 'location': 'Jakarta', 'capacity': '1000', 'used': '650'},
-      {'name': 'Warehouse B', 'location': 'Bandung', 'capacity': '800', 'used': '420'},
-      {'name': 'Warehouse C', 'location': 'Surabaya', 'capacity': '1200', 'used': '890'},
-    ];
-
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: Text('Warehouses'),
+        title: const Text('Warehouses'),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
+        actions: [
+          Obx(
+            () => _warehousesController.isLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _warehousesController.fetchWarehouses(),
+                  ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'All Warehouses (${warehouses.length})',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: warehouses.length,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        onPressed: () => _showCreateModal(context),
+        child: const Icon(Icons.add),
+      ),
+      body: Obx(
+        () {
+          if (_warehousesController.isLoading.value && _warehousesController.warehouses.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (_warehousesController.errorMessage.value != null && _warehousesController.warehouses.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    _warehousesController.errorMessage.value ?? 'Failed to load warehouses',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _warehousesController.fetchWarehouses(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (_warehousesController.warehouses.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inbox, size: 48, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No warehouses found',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCreateModal(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create Warehouse'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => _warehousesController.fetchWarehouses(),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _warehousesController.warehouses.length,
               separatorBuilder: (context, index) => Divider(color: AppTheme.border),
               itemBuilder: (context, index) {
-                final warehouse = warehouses[index];
-                final capacity = int.parse(warehouse['capacity']!);
-                final used = int.parse(warehouse['used']!);
-                final percentage = (used / capacity * 100).toStringAsFixed(0);
-
-                return Container(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  warehouse['name']!,
-                                  style: TextStyle(
-                                    color: AppTheme.textPrimary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.location_on,
-                                        size: 12, color: AppTheme.textTertiary),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      warehouse['location']!,
-                                      style: TextStyle(
-                                        color: AppTheme.textTertiary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '$percentage%',
-                            style: TextStyle(
-                              color: AppTheme.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      // Capacity Bar
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: used / capacity,
-                          minHeight: 6,
-                          backgroundColor: AppTheme.border.withValues(alpha: 0.3),
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '${warehouse['used']}/${warehouse['capacity']} items',
-                        style: TextStyle(
-                          color: AppTheme.textTertiary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
+                final warehouse = _warehousesController.warehouses[index];
+                return WarehouseListItem(
+                  warehouse: warehouse,
+                  onEdit: () => _showEditModal(context, warehouse),
+                  onDelete: () => _showDeleteDialog(context, warehouse.id),
                 );
               },
             ),
-          ],
-        ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreateModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateWarehouseModal(controller: _warehousesController),
+    );
+  }
+
+  void _showEditModal(BuildContext context, dynamic warehouse) {
+    showDialog(
+      context: context,
+      builder: (context) => EditWarehouseModal(
+        controller: _warehousesController,
+        warehouse: warehouse,
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, String warehouseId) {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteWarehouseDialog(
+        controller: _warehousesController,
+        warehouseId: warehouseId,
       ),
     );
   }

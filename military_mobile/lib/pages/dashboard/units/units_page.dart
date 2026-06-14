@@ -1,108 +1,145 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../config/theme.dart';
+import '../../../controllers/units_controller.dart';
+import 'widgets/unit_list_item.dart';
+import 'widgets/create_unit_modal.dart';
+import 'widgets/edit_unit_modal.dart';
+import 'widgets/delete_unit_dialog.dart';
 
 class UnitsPage extends StatelessWidget {
-  const UnitsPage({super.key});
+  final _unitsController = Get.put(UnitsController());
+
+  UnitsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final units = [
-      {'name': 'Alpha Unit', 'code': 'UNIT-001', 'members': '50', 'status': 'Active'},
-      {'name': 'Bravo Unit', 'code': 'UNIT-002', 'members': '45', 'status': 'Active'},
-      {'name': 'Charlie Unit', 'code': 'UNIT-003', 'members': '40', 'status': 'Inactive'},
-      {'name': 'Delta Unit', 'code': 'UNIT-004', 'members': '55', 'status': 'Active'},
-    ];
-
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: Text('Units'),
+        title: const Text('Units'),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
+        actions: [
+          Obx(
+            () => _unitsController.isLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _unitsController.fetchUnits(),
+                  ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'All Units (${units.length})',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: units.length,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        onPressed: () => _showCreateModal(context),
+        child: const Icon(Icons.add),
+      ),
+      body: Obx(
+        () {
+          if (_unitsController.isLoading.value && _unitsController.units.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (_unitsController.errorMessage.value != null && _unitsController.units.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    _unitsController.errorMessage.value ?? 'Failed to load units',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _unitsController.fetchUnits(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (_unitsController.units.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inbox, size: 48, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No units found',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCreateModal(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create Unit'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => _unitsController.fetchUnits(),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _unitsController.units.length,
               separatorBuilder: (context, index) => Divider(color: AppTheme.border),
               itemBuilder: (context, index) {
-                final unit = units[index];
-                return Container(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  unit['name']!,
-                                  style: TextStyle(
-                                    color: AppTheme.textPrimary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  unit['code']!,
-                                  style: TextStyle(
-                                    color: AppTheme.textTertiary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: unit['status'] == 'Active'
-                                  ? AppTheme.success.withValues(alpha: 0.2)
-                                  : AppTheme.textTertiary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              unit['status']!,
-                              style: TextStyle(
-                                color: unit['status'] == 'Active'
-                                    ? AppTheme.success
-                                    : AppTheme.textTertiary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '${unit['members']} Members',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                final unit = _unitsController.units[index];
+                return UnitListItem(
+                  unit: unit,
+                  onEdit: () => _showEditModal(context, unit),
+                  onDelete: () => _showDeleteDialog(context, unit.id),
                 );
               },
             ),
-          ],
-        ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreateModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateUnitModal(controller: _unitsController),
+    );
+  }
+
+  void _showEditModal(BuildContext context, dynamic unit) {
+    showDialog(
+      context: context,
+      builder: (context) => EditUnitModal(
+        controller: _unitsController,
+        unit: unit,
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, String unitId) {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteUnitDialog(
+        controller: _unitsController,
+        unitId: unitId,
       ),
     );
   }
