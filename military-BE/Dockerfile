@@ -1,5 +1,5 @@
 # Pake image Node versi LTS
-FROM node:20-alpine
+FROM node:20
 
 # Set working directory di dalam container
 WORKDIR /usr/src/app
