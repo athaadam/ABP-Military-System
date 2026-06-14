@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../config/theme.dart';
 import '../../controllers/auth_controller.dart';
+import '../../services/api_service.dart';
 import 'inventory/inventory_page.dart';
 import 'requests/requests_page.dart';
 import 'statistics/statistics_page.dart';
@@ -17,109 +18,136 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final _authController = Get.find<AuthController>();
+  final _api = ApiService();
+
+  int _totalItems = 0;
+  int _totalRequests = 0;
+  int _totalWarehouses = 0;
+  int _totalUnits = 0;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final results = await Future.wait([
+        _api.fetchItems(),
+        _api.fetchMyRequests(),
+        _api.fetchWarehouses(),
+        _api.fetchUnits(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _totalItems = results[0].length;
+          _totalRequests = results[1].length;
+          _totalWarehouses = results[2].length;
+          _totalUnits = results[3].length;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        title: Text('Dashboard'),
+        title: const Text('Dashboard'),
         elevation: 0,
         backgroundColor: AppTheme.darkCard,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.logout),
             onPressed: () => _authController.logout(),
           ),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome Card
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppTheme.primary, AppTheme.secondary],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+        child: RefreshIndicator(
+          onRefresh: _loadStats,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primary, AppTheme.secondary],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selamat datang!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            spreadRadius: 0,
-                          ),
-                        ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selamat datang!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      const SizedBox(height: 8),
+                      Obx(
+                        () => Text(
+                          _authController.user.value?.name ?? 'User',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 16,
                           ),
-                          SizedBox(height: 8),
-                          Obx(
-                            () => Text(
-                              _authController.user.value?.name ?? 'User',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 24),
-
-                    // Quick Stats
-                    Text(
-                      'Quick Stats',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.2,
-                      children: [
-                        _buildStatCard('Total Items', '1,234', Icons.inventory_2),
-                        _buildStatCard('Requests', '56', Icons.request_page),
-                        _buildStatCard('Warehouses', '8', Icons.warehouse),
-                        _buildStatCard('Units', '12', Icons.business),
-                      ],
-                    ),
-                    SizedBox(height: 24),
-
-                    // Menu
-                    Text(
-                      'Menu',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    SizedBox(height: 12),
-                    _buildMenuList(),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+
+                Text('Quick Stats', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 1.2,
+                        children: [
+                          _buildStatCard('Total Items', '$_totalItems', Icons.inventory_2),
+                          _buildStatCard('Requests', '$_totalRequests', Icons.request_page),
+                          _buildStatCard('Warehouses', '$_totalWarehouses', Icons.warehouse),
+                          _buildStatCard('Units', '$_totalUnits', Icons.business),
+                        ],
+                      ),
+                const SizedBox(height: 24),
+
+                Text('Menu', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                _buildMenuList(),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -127,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.darkCard,
         border: Border.all(color: AppTheme.border, width: 1),
@@ -149,14 +177,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  color: AppTheme.textTertiary,
-                  fontSize: 12,
-                ),
-              ),
+              const SizedBox(height: 4),
+              Text(title, style: TextStyle(color: AppTheme.textTertiary, fontSize: 12)),
             ],
           ),
         ],
@@ -166,17 +188,16 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildMenuList() {
     final menuItems = [
-      {'label': 'Inventory', 'icon': Icons.inventory_2, 'page': InventoryPage()},
-      {'label': 'Requests', 'icon': Icons.request_page, 'page': RequestsPage()},
-      {'label': 'Statistics', 'icon': Icons.bar_chart, 'page': StatisticsPage()},
-      {'label': 'Warehouses', 'icon': Icons.warehouse, 'page': WarehousesPage()},
-      {'label': 'Units', 'icon': Icons.business, 'page': UnitsPage()},
-      {'label': 'Settings', 'icon': Icons.settings, 'page': null},
+      {'label': 'Inventory', 'icon': Icons.inventory_2, 'page': const InventoryPage()},
+      {'label': 'Requests', 'icon': Icons.request_page, 'page': const RequestsPage()},
+      {'label': 'Statistics', 'icon': Icons.bar_chart, 'page': const StatisticsPage()},
+      {'label': 'Warehouses', 'icon': Icons.warehouse, 'page': const WarehousesPage()},
+      {'label': 'Units', 'icon': Icons.business, 'page': const UnitsPage()},
     ];
 
     return ListView.separated(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: menuItems.length,
       separatorBuilder: (context, index) => Divider(color: AppTheme.border, height: 1),
       itemBuilder: (context, index) {
@@ -188,18 +209,10 @@ class _DashboardPageState extends State<DashboardPage> {
             style: TextStyle(color: AppTheme.textSecondary),
           ),
           trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.textTertiary),
-          onTap: () {
-            if (item['page'] != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => item['page'] as Widget),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${item['label']} coming soon')),
-              );
-            }
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => item['page'] as Widget),
+          ),
         );
       },
     );

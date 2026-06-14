@@ -1,8 +1,12 @@
 import 'package:dio/dio.dart';
+import '../models/item.dart';
+import '../models/request_model.dart';
+import '../models/warehouse.dart';
+import '../models/unit.dart';
 import 'storage_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:5000/api';
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
 
   late Dio _dio;
 
@@ -77,5 +81,35 @@ class ApiService {
       path,
       queryParameters: queryParameters,
     );
+  }
+
+  Future<List<Item>> fetchItems() async {
+    final res = await get<Map<String, dynamic>>('/items');
+    final data = (res.data!['data'] as List<dynamic>);
+    return data.map((e) => Item.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<RequestModel>> fetchMyRequests() async {
+    final res = await get<Map<String, dynamic>>('/requests/my');
+    final data = (res.data!['data'] as List<dynamic>);
+    return data.map((e) => RequestModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<RequestModel>> fetchPendingRequests() async {
+    final res = await get<Map<String, dynamic>>('/requests/pending/list');
+    final data = (res.data!['data'] as List<dynamic>);
+    return data.map((e) => RequestModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Warehouse>> fetchWarehouses() async {
+    final res = await get<Map<String, dynamic>>('/warehouses');
+    final data = (res.data!['data'] as List<dynamic>);
+    return data.map((e) => Warehouse.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Unit>> fetchUnits() async {
+    final res = await get<Map<String, dynamic>>('/units');
+    final data = (res.data!['data'] as List<dynamic>);
+    return data.map((e) => Unit.fromJson(e as Map<String, dynamic>)).toList();
   }
 }
