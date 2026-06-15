@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Building2, Layers3, Shield, Plus, Edit2, Trash2, X } from 'lucide-react'
 import { ChartCard, StatCard } from '../../../components/dashboard'
+import { UnitSelector } from '../../../components/common/UnitSelector'
 import { unitService, warehouseService } from '../../../services'
 import { useAppSelector } from '../../../store/hooks'
 import type { Unit, Warehouse } from '../../../types/api'
 
 export default function WarehousesPage() {
   const user = useAppSelector((state) => state.auth.user)
+  const selectedUnitId = useAppSelector((state) => state.auth.selectedUnitId)
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [units, setUnits] = useState<Unit[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -36,11 +38,10 @@ export default function WarehousesPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const warehousePromise = warehouseService.getAll()
-
+      
       if (user?.role === 'admin' && user?.unitId) {
         const [warehouseRes, unitRes] = await Promise.all([
-          warehousePromise,
+          warehouseService.getAll(),
           unitService.getById(user.unitId),
         ])
 
@@ -49,9 +50,23 @@ export default function WarehousesPage() {
 
         // For admin, auto-populate the createForm with their unitId
         setCreateForm({ name: '', unitId: user.unitId })
+      } else if (user?.role === 'superadmin') {
+        const unitIdToUse = selectedUnitId ?? undefined
+        const [warehouseRes, unitRes, allUnitsRes] = await Promise.all([
+          warehouseService.getAll(unitIdToUse ? { unitId: unitIdToUse } : undefined),
+          unitIdToUse ? unitService.getById(unitIdToUse) : Promise.resolve({ data: null }),
+          unitService.getAll(),
+        ])
+
+        setWarehouses(warehouseRes.data ?? [])
+        setUnits(unitRes.data ? [unitRes.data] : allUnitsRes.data ?? [])
+        
+        if (unitIdToUse) {
+          setCreateForm({ name: '', unitId: unitIdToUse })
+        }
       } else {
         const [warehouseRes, unitRes] = await Promise.all([
-          warehousePromise,
+          warehouseService.getAll(),
           unitService.getAll(),
         ])
 
@@ -67,7 +82,7 @@ export default function WarehousesPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [selectedUnitId])
 
   const unitMap = useMemo(() => {
     return new Map(units.map((unit) => [unit.id, unit.name]))
@@ -204,6 +219,23 @@ export default function WarehousesPage() {
         <h1 className="text-3xl font-bold text-white">Warehouses</h1>
         <p className="text-slate-300">Pusat distribusi inventory berdasarkan unit militer</p>
       </div>
+
+      {user?.role === 'superadmin' && !selectedUnitId && (
+        <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 flex items-start gap-3">
+          <div className="mt-0.5">⚠️</div>
+          <div>
+            <p className="font-semibold">Silahkan pilih unit terlebih dahulu</p>
+            <p className="text-sm text-amber-200/80">Gunakan dropdown unit selector di bawah untuk memilih unit yang ingin dikelola.</p>
+          </div>
+        </div>
+      )}
+
+      {user?.role === 'superadmin' && (
+        <div className="max-w-sm">
+          <label className="block text-sm font-medium text-slate-300 mb-2">Pilih Unit</label>
+          <UnitSelector />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {stats.map((stat) => (

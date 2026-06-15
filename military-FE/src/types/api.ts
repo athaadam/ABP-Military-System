@@ -77,16 +77,41 @@ export interface UpdateWarehouseRequest {
 }
 
 // Item Types
+export type ItemCondition = 'Aktif' | 'Digunakan' | 'Rusak' | 'Perbaikan' | 'Cadangan' | 'Habis'
+
+export interface ItemConditionStock {
+  Aktif: number
+  Digunakan: number
+  Rusak: number
+  Perbaikan: number
+  Cadangan: number
+  Habis: number
+}
+
+export interface ItemConditionMutation {
+  id: number
+  itemId: number
+  fromCondition: ItemCondition
+  toCondition: ItemCondition
+  quantity: number
+  note?: string | null
+  userId?: number | null
+  created_at?: string
+}
+
 export interface Item {
   id: number
   name: string
   category: 'Persenjataan' | 'Amunisi' | 'Kendaraan Militer'
   stock: number
-  condition: 'Aktif' | 'Digunakan' | 'Rusak' | 'Perbaikan' | 'Cadangan' | 'Habis'
+  availableStock?: number
+  unavailableStock?: number
+  condition: ItemCondition
   warehouseId: number
   imageUrl?: string
   warehouseName?: string
   unitId?: string
+  conditionStock?: ItemConditionStock
   created_at?: string
   updated_at?: string
 }
@@ -95,12 +120,29 @@ export interface CreateItemRequest {
   name: string
   category: 'Persenjataan' | 'Amunisi' | 'Kendaraan Militer'
   stock: number
-  condition?: 'Aktif' | 'Digunakan' | 'Rusak' | 'Perbaikan' | 'Cadangan' | 'Habis'
+  condition?: ItemCondition
   warehouseId: number
   imageUrl: string
 }
 
 export interface UpdateItemRequest extends Partial<CreateItemRequest> {}
+
+export interface TransferItemConditionRequest {
+  fromCondition: ItemCondition
+  toCondition: ItemCondition
+  quantity: number
+  note?: string
+}
+
+export interface AddStockRequest {
+  quantity: number
+  condition?: ItemCondition
+  note?: string
+}
+
+export interface ItemDetail extends Item {
+  mutationHistory?: ItemConditionMutation[]
+}
 
 // Request Types
 export interface ItemRequest {
@@ -146,6 +188,7 @@ export interface PaginationParams {
   search?: string
   sort?: string
   order?: 'asc' | 'desc'
+  unitId?: string
 }
 
 export interface PaginatedResponse<T> {

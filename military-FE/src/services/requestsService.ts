@@ -25,8 +25,11 @@ export const requestsService = {
   },
 
   // Get pending requests (Admin)
-  getPendingRequests: async () => {
-    const response = await apiClient.get<ApiResponse<ItemRequest[]>>('/requests/pending/list')
+  getPendingRequests: async (unitId?: string) => {
+    const params = unitId ? `?unitId=${unitId}` : ''
+    const response = await apiClient.get<ApiResponse<ItemRequest[]>>(
+      `/requests/pending/list${params}`
+    )
     return response.data
   },
 

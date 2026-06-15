@@ -16,6 +16,7 @@ interface AuthState {
   isInitializing: boolean
   error: string | null
   isAuthenticated: boolean
+  selectedUnitId: string | null
 }
 
 const initialState: AuthState = {
@@ -25,6 +26,7 @@ const initialState: AuthState = {
   isInitializing: true,
   error: null,
   isAuthenticated: !!localStorage.getItem('token'),
+  selectedUnitId: localStorage.getItem('selectedUnitId') || null,
 }
 
 const authSlice = createSlice({
@@ -61,6 +63,20 @@ const authSlice = createSlice({
     restoreUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload
       state.isAuthenticated = true
+      // For superadmin, use persisted selectedUnitId; for others use their unitId
+      if (action.payload.role === 'superadmin') {
+        if (!state.selectedUnitId) {
+          state.selectedUnitId = null
+        }
+      } else {
+        state.selectedUnitId = action.payload.unitId
+      }
+    },
+
+    // Set selected unit for superadmin
+    setSelectedUnit: (state, action: PayloadAction<string>) => {
+      state.selectedUnitId = action.payload
+      localStorage.setItem('selectedUnitId', action.payload)
     },
 
     // Clear error
@@ -83,6 +99,7 @@ export const {
   restoreUser,
   clearError,
   setInitializing,
+  setSelectedUnit,
 } = authSlice.actions
 
 export default authSlice.reducer

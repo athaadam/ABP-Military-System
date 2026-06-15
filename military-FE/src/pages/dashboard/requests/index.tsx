@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Clock3, CheckCircle2, XCircle, FileText } from 'lucide-react'
+import { useAppSelector } from '../../../store/hooks'
 import { ChartCard, StatCard } from '../../../components/dashboard'
+import { UnitSelector } from '../../../components/common/UnitSelector'
 import { requestsService } from '../../../services'
 import type { ItemRequest, User } from '../../../types/api'
 
@@ -16,6 +18,7 @@ const statusClasses: Record<ItemRequest['status'], string> = {
 }
 
 export default function RequestsPage({ role }: RequestsPageProps) {
+  const selectedUnitId = useAppSelector((state) => state.auth.selectedUnitId)
   const [requests, setRequests] = useState<ItemRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [processingId, setProcessingId] = useState<number | null>(null)
@@ -24,11 +27,19 @@ export default function RequestsPage({ role }: RequestsPageProps) {
   const isAdminScope = role === 'superadmin' || role === 'admin'
 
   const fetchRequests = async () => {
+    if (role === 'superadmin' && !selectedUnitId) {
+      setRequests([])
+      setError(null)
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
+      const unitIdToUse = role === 'superadmin' ? (selectedUnitId ?? undefined) : undefined
       const response = isAdminScope
-        ? await requestsService.getPendingRequests()
+        ? await requestsService.getPendingRequests(unitIdToUse)
         : await requestsService.getMyRequests()
       setRequests(response.data ?? [])
     } catch (err: any) {
@@ -40,7 +51,7 @@ export default function RequestsPage({ role }: RequestsPageProps) {
 
   useEffect(() => {
     fetchRequests()
-  }, [role])
+  }, [role, selectedUnitId])
 
   const handleAction = async (id: number, action: 'approve' | 'reject') => {
     try {
@@ -81,6 +92,23 @@ export default function RequestsPage({ role }: RequestsPageProps) {
             : 'Daftar request item yang pernah Anda ajukan'}
         </p>
       </div>
+
+      {role === 'superadmin' && !selectedUnitId && (
+        <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 flex items-start gap-3">
+          <div className="mt-0.5">⚠️</div>
+          <div>
+            <p className="font-semibold">Silahkan pilih unit terlebih dahulu</p>
+            <p className="text-sm text-amber-200/80">Gunakan dropdown unit selector di bawah untuk memilih unit yang ingin dikelola.</p>
+          </div>
+        </div>
+      )}
+
+      {role === 'superadmin' && (
+        <div className="max-w-sm">
+          <label className="block text-sm font-medium text-slate-300 mb-2">Pilih Unit</label>
+          <UnitSelector />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {stats.map((stat) => (

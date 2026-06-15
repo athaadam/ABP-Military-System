@@ -8,6 +8,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useAppSelector } from '../../../store/hooks'
 import { StatCard, ChartCard, RecentActivityTable } from '../../../components/dashboard'
 import { itemsService, requestsService, unitService, userService, warehouseService } from '../../../services'
 import type { Item, ItemRequest, Unit, User, Warehouse as WarehouseType } from '../../../types/api'
@@ -40,6 +41,7 @@ const toTimestampLabel = (createdAt?: string, fallbackId?: number) => {
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate()
+  const selectedUnitId = useAppSelector((state) => state.auth.selectedUnitId)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,11 +56,15 @@ export default function SuperAdminDashboard() {
       setIsLoading(true)
       setError(null)
 
+      const pendingRequestsPromise = selectedUnitId
+        ? requestsService.getPendingRequests(selectedUnitId)
+        : Promise.resolve({ data: [] as ItemRequest[] })
+
       const [usersRes, itemsRes, warehousesRes, requestsRes, unitsRes] = await Promise.all([
         userService.getAll(),
         itemsService.getAll(),
         warehouseService.getAll(),
-        requestsService.getPendingRequests(),
+        pendingRequestsPromise,
         unitService.getAll(),
       ])
 
@@ -76,7 +82,7 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+  }, [selectedUnitId])
 
   const maps = useMemo(() => {
     const itemMap = new Map(items.map((item) => [item.id, item.name]))

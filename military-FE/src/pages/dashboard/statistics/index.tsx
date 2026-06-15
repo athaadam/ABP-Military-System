@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, AlertTriangle, PackageCheck, Warehouse, Clock3 }
 import { ChartCard, StatCard } from '../../../components/dashboard'
 import { itemsService, requestsService, userService, warehouseService } from '../../../services'
 import type { Item, ItemRequest, User, Warehouse as WarehouseType } from '../../../types/api'
+import { useAppSelector } from '../../../store/hooks'
 
 type StatisticsRole = 'superadmin' | 'admin'
 
@@ -11,6 +12,7 @@ interface StatisticsPageProps {
 }
 
 export default function StatisticsPage({ role }: StatisticsPageProps) {
+  const selectedUnitId = useAppSelector((state) => state.auth.selectedUnitId)
   const [items, setItems] = useState<Item[]>([])
   const [pendingRequests, setPendingRequests] = useState<ItemRequest[]>([])
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([])
@@ -22,14 +24,23 @@ export default function StatisticsPage({ role }: StatisticsPageProps) {
     try {
       setIsLoading(true)
       setError(null)
+      const itemsPromise = itemsService.getAll(selectedUnitId ?? undefined)
+      const warehousesPromise = warehouseService.getAll(
+        selectedUnitId ? { unitId: selectedUnitId } : undefined,
+      )
 
-      const baseCalls = await Promise.all([
-        itemsService.getAll(),
-        requestsService.getPendingRequests(),
-        warehouseService.getAll(),
+      let requestsPromise
+      if (role === 'superadmin' && !selectedUnitId) {
+        requestsPromise = Promise.resolve({ data: [] })
+      } else {
+        requestsPromise = requestsService.getPendingRequests(selectedUnitId ?? undefined)
+      }
+
+      const [itemsRes, requestsRes, warehousesRes] = await Promise.all([
+        itemsPromise,
+        requestsPromise,
+        warehousesPromise,
       ])
-
-      const [itemsRes, requestsRes, warehousesRes] = baseCalls
       setItems(itemsRes.data ?? [])
       setPendingRequests(requestsRes.data ?? [])
       setWarehouses(warehousesRes.data ?? [])
@@ -49,7 +60,7 @@ export default function StatisticsPage({ role }: StatisticsPageProps) {
 
   useEffect(() => {
     fetchStatisticsData()
-  }, [role])
+  }, [role, selectedUnitId])
 
   const lowStockCount = useMemo(() => items.filter((item) => item.stock <= 10).length, [items])
 

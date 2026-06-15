@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Package, AlertTriangle, ShieldCheck, Boxes, Plus, Edit2, Trash2, X, ImagePlus, Circle } from 'lucide-react'
+import { Package, ShieldCheck, Boxes, Plus, Edit2, Trash2, X, ImagePlus, Circle, Eye, ArrowRightLeft, Info } from 'lucide-react'
 import { ChartCard, StatCard } from '../../../components/dashboard'
+import { UnitSelector } from '../../../components/common/UnitSelector'
 import { itemsService, warehouseService } from '../../../services'
 import { useAppSelector } from '../../../store/hooks'
-import type { CreateItemRequest, Item, UpdateItemRequest, Warehouse } from '../../../types/api'
+import type {
+  AddStockRequest,
+  CreateItemRequest,
+  Item,
+  ItemCondition,
+  ItemDetail,
+  TransferItemConditionRequest,
+  UpdateItemRequest,
+  Warehouse,
+} from '../../../types/api'
 
 type ItemFormState = {
   name: string
@@ -14,7 +24,28 @@ type ItemFormState = {
   imageUrl: string
 }
 
+type EditItemFormState = {
+  name: string
+  category: CreateItemRequest['category']
+  warehouseId: string
+  imageUrl: string
+}
+
+type AddStockFormState = {
+  quantity: string
+  condition: ItemCondition
+  note: string
+}
+
 type CategoryKey = CreateItemRequest['category']
+type TransferFormState = {
+  fromCondition: ItemCondition
+  toCondition: ItemCondition
+  quantity: string
+  note: string
+}
+
+const conditionOrder: ItemCondition[] = ['Aktif', 'Digunakan', 'Rusak', 'Perbaikan', 'Cadangan', 'Habis']
 
 const categoryOrder: CategoryKey[] = ['Persenjataan', 'Amunisi', 'Kendaraan Militer']
 
@@ -94,8 +125,29 @@ const defaultForm: ItemFormState = {
   imageUrl: '',
 }
 
+const defaultEditForm: EditItemFormState = {
+  name: '',
+  category: 'Persenjataan',
+  warehouseId: '',
+  imageUrl: '',
+}
+
+const defaultTransferForm: TransferFormState = {
+  fromCondition: 'Aktif',
+  toCondition: 'Rusak',
+  quantity: '1',
+  note: '',
+}
+
+const defaultAddStockForm: AddStockFormState = {
+  quantity: '',
+  condition: 'Aktif',
+  note: '',
+}
+
 export default function InventoryPage() {
   const currentUser = useAppSelector((state) => state.auth.user)
+  const selectedUnitId = useAppSelector((state) => state.auth.selectedUnitId)
 
   const [items, setItems] = useState<Item[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
@@ -111,11 +163,27 @@ export default function InventoryPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
-  const [editForm, setEditForm] = useState<ItemFormState>(defaultForm)
+  const [editForm, setEditForm] = useState<EditItemFormState>(defaultEditForm)
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [editSuccess, setEditSuccess] = useState<string | null>(null)
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedItemDetail, setSelectedItemDetail] = useState<ItemDetail | null>(null)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  const [transferForm, setTransferForm] = useState<TransferFormState>(defaultTransferForm)
+  const [isTransferring, setIsTransferring] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
+
+  const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false)
+  const [addStockItem, setAddStockItem] = useState<Item | null>(null)
+  const [addStockForm, setAddStockForm] = useState<AddStockFormState>(defaultAddStockForm)
+  const [isAddingStock, setIsAddingStock] = useState(false)
+  const [addStockError, setAddStockError] = useState<string | null>(null)
+  const [addStockSuccess, setAddStockSuccess] = useState<string | null>(null)
 
   const [activeCategory, setActiveCategory] = useState<CategoryKey>(categoryOrder[0])
 
@@ -130,9 +198,11 @@ export default function InventoryPage() {
       setIsLoading(true)
       setError(null)
 
+      const unitIdToUse = currentUser?.role === 'superadmin' ? (selectedUnitId ?? undefined) : undefined
+
       const [itemsRes, warehousesRes] = await Promise.all([
-        itemsService.getAll(),
-        warehouseService.getAll(),
+        itemsService.getAll(unitIdToUse),
+        warehouseService.getAll(unitIdToUse ? { unitId: unitIdToUse } : undefined),
       ])
 
       setItems(itemsRes.data ?? [])
@@ -153,23 +223,23 @@ export default function InventoryPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [selectedUnitId])
 
   const warehouseMap = useMemo(() => {
     return new Map(warehouses.map((warehouse) => [warehouse.id, warehouse.name]))
   }, [warehouses])
 
   const stats = useMemo(() => {
-    const totalStock = items.reduce((sum, item) => sum + item.stock, 0)
-    const lowStock = items.filter((item) => item.stock <= 10).length
+    const totalPhysicalStock = items.reduce((sum, item) => sum + item.stock, 0)
+    const totalAvailableStock = items.reduce((sum, item) => sum + (item.availableStock ?? item.stock), 0)
     const damaged = items.filter(
       (item) => item.condition === 'Rusak' || item.condition === 'Perbaikan',
     ).length
 
     return [
       { label: 'Total Items', value: items.length, icon: <Package size={24} />, color: 'blue' as const },
-      { label: 'Total Stock', value: totalStock, icon: <Boxes size={24} />, color: 'purple' as const },
-      { label: 'Low Stock', value: lowStock, icon: <AlertTriangle size={24} />, color: 'orange' as const },
+      { label: 'Physical', value: totalPhysicalStock, icon: <Boxes size={24} />, color: 'purple' as const },
+      { label: 'Available', value: totalAvailableStock, icon: <Boxes size={24} />, color: 'orange' as const },
       { label: 'Need Repair', value: damaged, icon: <ShieldCheck size={24} />, color: 'red' as const },
     ]
   }, [items])
@@ -190,6 +260,21 @@ export default function InventoryPage() {
     setEditSuccess(null)
   }
 
+  const resetDetailState = () => {
+    setSelectedItemDetail(null)
+    setDetailError(null)
+    setTransferForm(defaultTransferForm)
+    setTransferError(null)
+    setTransferSuccess(null)
+  }
+
+  const resetAddStockState = () => {
+    setAddStockItem(null)
+    setAddStockForm(defaultAddStockForm)
+    setAddStockError(null)
+    setAddStockSuccess(null)
+  }
+
   const openCreateModal = () => {
     setCreateForm({
       ...defaultForm,
@@ -206,14 +291,48 @@ export default function InventoryPage() {
     setEditForm({
       name: item.name,
       category: item.category,
-      stock: String(item.stock),
-      condition: item.condition,
       warehouseId: String(item.warehouseId),
       imageUrl: item.imageUrl || '',
     })
     setEditImagePreview(item.imageUrl || null)
     resetEditState()
     setIsEditModalOpen(true)
+  }
+
+  const openAddStockModal = (item: Item) => {
+    setAddStockItem(item)
+    setAddStockForm(defaultAddStockForm)
+    setAddStockError(null)
+    setAddStockSuccess(null)
+    setIsAddStockModalOpen(true)
+  }
+
+  const handleOpenDetail = async (itemId: number) => {
+    setIsDetailModalOpen(true)
+    setIsDetailLoading(true)
+    setDetailError(null)
+    setTransferError(null)
+    setTransferSuccess(null)
+    try {
+      const response = await itemsService.getDetail(itemId)
+      const detail = response.data
+      setSelectedItemDetail(detail ?? null)
+
+      const availableCondition = conditionOrder.find(
+        (condition) => (detail?.conditionStock?.[condition] || 0) > 0,
+      ) || 'Aktif'
+
+      setTransferForm({
+        fromCondition: availableCondition,
+        toCondition: availableCondition === 'Aktif' ? 'Rusak' : 'Aktif',
+        quantity: '1',
+        note: '',
+      })
+    } catch (err: any) {
+      setDetailError(err?.response?.data?.message || 'Gagal memuat detail item')
+    } finally {
+      setIsDetailLoading(false)
+    }
   }
 
   const handleCreateImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,6 +395,40 @@ export default function InventoryPage() {
     }
   }
 
+  const handleTransferCondition = async () => {
+    if (!selectedItemDetail) {
+      return
+    }
+
+    const quantityValue = Number(transferForm.quantity)
+    if (!Number.isInteger(quantityValue) || quantityValue <= 0) {
+      setTransferError('Quantity harus bilangan bulat lebih dari 0')
+      return
+    }
+
+    setIsTransferring(true)
+    try {
+      const payload: TransferItemConditionRequest = {
+        fromCondition: transferForm.fromCondition,
+        toCondition: transferForm.toCondition,
+        quantity: quantityValue,
+        note: transferForm.note.trim() || undefined,
+      }
+
+      const response = await itemsService.transferCondition(selectedItemDetail.id, payload)
+      const updatedDetail = response.data
+      setSelectedItemDetail(updatedDetail ?? null)
+      setTransferSuccess('Mutasi kondisi berhasil disimpan')
+      setTransferError(null)
+      await fetchData()
+      setTimeout(() => setTransferSuccess(null), 2500)
+    } catch (err: any) {
+      setTransferError(err?.response?.data?.message || 'Gagal memutasi kondisi item')
+    } finally {
+      setIsTransferring(false)
+    }
+  }
+
   const handleSaveEdit = async () => {
     if (!editingItem) {
       return
@@ -286,19 +439,13 @@ export default function InventoryPage() {
       return
     }
 
-    const stockValue = Number(editForm.stock)
-    if (Number.isNaN(stockValue) || stockValue < 0) {
-      setEditError('Stock harus berupa angka non-negatif')
-      return
-    }
-
     setIsEditing(true)
     try {
       const payload: UpdateItemRequest = {
         name: editForm.name.trim(),
         category: editForm.category,
-        stock: stockValue,
-        condition: editForm.condition,
+        stock: editingItem.stock,
+        condition: editingItem.condition,
         warehouseId: Number(editForm.warehouseId),
         imageUrl: editForm.imageUrl || undefined,
       }
@@ -312,6 +459,37 @@ export default function InventoryPage() {
       setEditError(err?.response?.data?.message || 'Gagal mengupdate item')
     } finally {
       setIsEditing(false)
+    }
+  }
+
+  const handleAddStock = async () => {
+    if (!addStockItem) {
+      return
+    }
+
+    const quantityValue = Number(addStockForm.quantity)
+    if (!Number.isInteger(quantityValue) || quantityValue <= 0) {
+      setAddStockError('Quantity harus bilangan bulat lebih dari 0')
+      return
+    }
+
+    setIsAddingStock(true)
+    try {
+      const payload: AddStockRequest = {
+        quantity: quantityValue,
+        condition: addStockForm.condition,
+        note: addStockForm.note.trim() || undefined,
+      }
+
+      await itemsService.addStock(addStockItem.id, payload)
+      setAddStockSuccess('Stok berhasil ditambahkan!')
+      await fetchData()
+      setTimeout(() => setAddStockSuccess(null), 3000)
+      setTimeout(() => setIsAddStockModalOpen(false), 1500)
+    } catch (err: any) {
+      setAddStockError(err?.response?.data?.message || 'Gagal menambahkan stok item')
+    } finally {
+      setIsAddingStock(false)
     }
   }
 
@@ -340,6 +518,23 @@ export default function InventoryPage() {
         <h1 className="text-3xl font-bold text-white">Inventory Management</h1>
         <p className="text-slate-300">Kelola item, stok, dan distribusi per warehouse</p>
       </div>
+
+      {currentUser?.role === 'superadmin' && !selectedUnitId && (
+        <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 flex items-start gap-3">
+          <div className="mt-0.5">⚠️</div>
+          <div>
+            <p className="font-semibold">Silahkan pilih unit terlebih dahulu</p>
+            <p className="text-sm text-amber-200/80">Gunakan dropdown unit selector di bawah untuk memilih unit yang ingin dikelola.</p>
+          </div>
+        </div>
+      )}
+
+      {currentUser?.role === 'superadmin' && (
+        <div className="max-w-sm">
+          <label className="block text-sm font-medium text-slate-300 mb-2">Pilih Unit</label>
+          <UnitSelector />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {stats.map((stat) => (
@@ -452,8 +647,19 @@ export default function InventoryPage() {
                             </span>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Stock</p>
-                            <p className="text-lg font-semibold text-white">{item.stock}</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Available</p>
+                            <p className="text-lg font-semibold text-white">{item.availableStock ?? item.stock}</p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-700/60 bg-slate-950/55 p-3 text-sm text-slate-300">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-slate-500">Physical</span>
+                            <span className="font-medium text-slate-100">{item.stock}</span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-3">
+                            <span className="text-slate-500">Unavailable</span>
+                            <span className="font-medium text-slate-100">{item.unavailableStock ?? Math.max(item.stock - (item.availableStock ?? item.stock), 0)}</span>
                           </div>
                         </div>
 
@@ -467,20 +673,34 @@ export default function InventoryPage() {
                           </p>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => handleOpenDetail(item.id)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-500/30 bg-slate-600/15 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600/25 active:bg-slate-600/35"
+                          >
+                            <Eye size={14} />
+                            <span className="hidden sm:inline">Detail</span>
+                          </button>
+                          <button
+                            onClick={() => openAddStockModal(item)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-500/30 bg-green-600/15 px-3 py-2 text-sm font-medium text-green-200 transition-colors hover:bg-green-600/25 active:bg-green-600/35"
+                          >
+                            <Plus size={14} />
+                            <span className="hidden sm:inline">Add Stock</span>
+                          </button>
                           <button
                             onClick={() => handleStartEdit(item)}
-                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-blue-500/30 bg-blue-600/15 px-3 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-600/25"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-500/30 bg-blue-600/15 px-3 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-600/25 active:bg-blue-600/35"
                           >
                             <Edit2 size={14} />
-                            Edit
+                            <span className="hidden sm:inline">Edit</span>
                           </button>
                           <button
                             onClick={() => handleStartDelete(item)}
-                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-600/15 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-600/25"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-600/15 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-600/25 active:bg-red-600/35"
                           >
                             <Trash2 size={14} />
-                            Delete
+                            <span className="hidden sm:inline">Delete</span>
                           </button>
                         </div>
                       </div>
@@ -491,6 +711,176 @@ export default function InventoryPage() {
           </section>
         )}
       </ChartCard>
+
+      {isDetailModalOpen && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700/60 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Detail Item</h2>
+              <button
+                onClick={() => {
+                  setIsDetailModalOpen(false)
+                  resetDetailState()
+                }}
+                className="p-2 hover:bg-slate-800 rounded-lg text-slate-400"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {isDetailLoading ? (
+              <div className="py-10 text-center text-slate-300">Loading detail item...</div>
+            ) : detailError ? (
+              <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 text-sm mb-6">
+                {detailError}
+              </div>
+            ) : selectedItemDetail ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+                  <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950/65">
+                    <div className={`h-56 bg-gradient-to-br ${categoryMeta[selectedItemDetail.category].accent}`}>
+                      <img
+                        src={getItemImage(selectedItemDetail)}
+                        alt={selectedItemDetail.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Item ID</p>
+                      <h3 className="text-2xl font-bold text-white">{selectedItemDetail.name}</h3>
+                      <p className="text-sm text-slate-400">{selectedItemDetail.category}</p>
+                      <div className="flex items-center gap-2 pt-2">
+                        <span className="rounded-full border border-slate-600/60 bg-slate-800/70 px-2.5 py-1 text-xs text-slate-200">
+                          Physical: {selectedItemDetail.stock}
+                        </span>
+                        <span className="rounded-full border border-slate-600/60 bg-slate-800/70 px-2.5 py-1 text-xs text-slate-200">
+                          Available: {selectedItemDetail.availableStock ?? selectedItemDetail.stock}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {conditionOrder.map((condition) => {
+                        const quantity = selectedItemDetail.conditionStock?.[condition] || 0
+                        return (
+                          <div
+                            key={condition}
+                            className="rounded-xl border border-slate-700/60 bg-slate-950/55 p-4"
+                          >
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{condition}</p>
+                            <p className="mt-2 text-2xl font-bold text-white">{quantity}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-700/60 bg-slate-950/55 p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                        <ArrowRightLeft size={18} />
+                        Mutasi Kondisi
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300">Dari Kondisi</label>
+                          <select
+                            value={transferForm.fromCondition}
+                            onChange={(e) => setTransferForm({ ...transferForm, fromCondition: e.target.value as ItemCondition })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          >
+                            {conditionOrder.map((condition) => (
+                              <option key={condition} value={condition}>{condition}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300">Ke Kondisi</label>
+                          <select
+                            value={transferForm.toCondition}
+                            onChange={(e) => setTransferForm({ ...transferForm, toCondition: e.target.value as ItemCondition })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          >
+                            {conditionOrder.map((condition) => (
+                              <option key={condition} value={condition}>{condition}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300">Quantity</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={transferForm.quantity}
+                            onChange={(e) => setTransferForm({ ...transferForm, quantity: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300">Catatan</label>
+                          <input
+                            type="text"
+                            value={transferForm.note}
+                            onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
+                            placeholder="Opsional"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          />
+                        </div>
+                      </div>
+
+                      {transferError && (
+                        <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 text-sm">
+                          {transferError}
+                        </div>
+                      )}
+
+                      {transferSuccess && (
+                        <div className="p-3 rounded-lg border border-green-500/40 bg-green-500/10 text-green-200 text-sm">
+                          {transferSuccess}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleTransferCondition}
+                        disabled={isTransferring}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium transition-colors hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-400"
+                      >
+                        <ArrowRightLeft size={16} />
+                        {isTransferring ? 'Menyimpan...' : 'Simpan Mutasi'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/55 p-4">
+                  <h3 className="text-lg font-semibold text-white mb-4">Riwayat Mutasi</h3>
+                  {selectedItemDetail.mutationHistory?.length ? (
+                    <div className="space-y-3">
+                      {selectedItemDetail.mutationHistory.map((record) => (
+                        <div key={record.id} className="rounded-xl border border-slate-700/60 bg-slate-900/70 p-4 text-sm text-slate-300">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-slate-100 font-medium">
+                              {record.quantity} unit: {record.fromCondition} → {record.toCondition}
+                            </p>
+                            <span className="text-xs text-slate-500">{record.created_at ? new Date(record.created_at).toLocaleString('id-ID') : '-'}</span>
+                          </div>
+                          {record.note && <p className="mt-2 text-slate-400">{record.note}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-slate-500 text-sm">Belum ada riwayat mutasi.</div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -689,7 +1079,7 @@ export default function InventoryPage() {
                     <label className="text-xs font-semibold text-slate-300">Category</label>
                     <select
                       value={editForm.category}
-                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value as ItemFormState['category'] })}
+                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value as EditItemFormState['category'] })}
                       disabled={isEditing}
                       className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
                     >
@@ -697,37 +1087,6 @@ export default function InventoryPage() {
                       <option value="Amunisi">Amunisi</option>
                       <option value="Kendaraan Militer">Kendaraan Militer</option>
                     </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-300">Condition</label>
-                    <select
-                      value={editForm.condition}
-                      onChange={(e) => setEditForm({ ...editForm, condition: e.target.value as ItemFormState['condition'] })}
-                      disabled={isEditing}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
-                    >
-                      <option value="Aktif">Aktif</option>
-                      <option value="Digunakan">Digunakan</option>
-                      <option value="Rusak">Rusak</option>
-                      <option value="Perbaikan">Perbaikan</option>
-                      <option value="Cadangan">Cadangan</option>
-                      <option value="Habis">Habis</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-300">Stock</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editForm.stock}
-                      onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
-                      disabled={isEditing}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50"
-                    />
                   </div>
 
                   <div className="space-y-2">
@@ -766,6 +1125,11 @@ export default function InventoryPage() {
                     <ImagePlus size={14} />
                     Jika item lama belum punya gambar, upload gambar baru di sini.
                   </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-200 text-sm flex items-start gap-2">
+                  <Info size={16} className="flex-shrink-0 mt-0.5" />
+                  <span>Untuk mutasi stok atau mengubah kondisi item, gunakan tombol Detail dan Transfer Condition di inventory list.</span>
                 </div>
 
                 {editError && (
@@ -855,6 +1219,105 @@ export default function InventoryPage() {
                   className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-slate-700 disabled:text-slate-400 text-white font-medium transition-colors"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddStockModalOpen && addStockItem && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-green-500/30 rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Add Stock - {addStockItem.name}</h2>
+              <button
+                onClick={() => {
+                  setIsAddStockModalOpen(false)
+                  resetAddStockState()
+                }}
+                className="p-2 hover:bg-slate-800 rounded-lg text-slate-400"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {addStockSuccess ? (
+              <div className="space-y-4 mb-6">
+                <div className="p-4 rounded-lg border border-green-500/40 bg-green-500/10 text-green-200 text-sm text-center">
+                  ✓ {addStockSuccess}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 mb-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-300">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={addStockForm.quantity}
+                    onChange={(e) => setAddStockForm({ ...addStockForm, quantity: e.target.value })}
+                    disabled={isAddingStock}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:opacity-50"
+                    placeholder="Jumlah stok"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-300">Condition</label>
+                  <select
+                    value={addStockForm.condition}
+                    onChange={(e) => setAddStockForm({ ...addStockForm, condition: e.target.value as ItemCondition })}
+                    disabled={isAddingStock}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:opacity-50"
+                  >
+                    <option value="Aktif">Aktif</option>
+                    <option value="Digunakan">Digunakan</option>
+                    <option value="Rusak">Rusak</option>
+                    <option value="Perbaikan">Perbaikan</option>
+                    <option value="Cadangan">Cadangan</option>
+                    <option value="Habis">Habis</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-300">Note (Optional)</label>
+                  <textarea
+                    value={addStockForm.note}
+                    onChange={(e) => setAddStockForm({ ...addStockForm, note: e.target.value })}
+                    disabled={isAddingStock}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-900/70 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:opacity-50 resize-none"
+                    placeholder="Misal: Pembelian barang baru, restok dari supplier..."
+                  />
+                </div>
+
+                {addStockError && (
+                  <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 text-sm">
+                    {addStockError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setIsAddStockModalOpen(false)
+                  resetAddStockState()
+                }}
+                disabled={isAddingStock}
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 font-medium transition-colors"
+              >
+                {addStockSuccess ? 'Close' : 'Cancel'}
+              </button>
+              {!addStockSuccess && (
+                <button
+                  onClick={handleAddStock}
+                  disabled={isAddingStock}
+                  className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:text-slate-400 text-white font-medium transition-colors"
+                >
+                  {isAddingStock ? 'Adding...' : 'Add Stock'}
                 </button>
               )}
             </div>
