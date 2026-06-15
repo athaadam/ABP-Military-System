@@ -183,6 +183,32 @@ class _LoginPageState extends State<LoginPage> {
                       icon: Icons.login,
                     ),
                   ),
+                  SizedBox(height: 16),
+
+                  // Register link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Belum punya akun?',
+                        style: TextStyle(color: AppTheme.textTertiary, fontSize: 14),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          _authController.errorMessage.value = null;
+                          Get.toNamed('/register');
+                        },
+                        child: Text(
+                          'Daftar',
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

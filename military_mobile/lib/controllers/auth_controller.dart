@@ -7,6 +7,7 @@ class AuthController extends GetxController {
   final _apiService = ApiService();
 
   final isLoading = false.obs;
+  final isRegistering = false.obs;
   final isAuthenticated = false.obs;
   final user = Rx<User?>(null);
   final errorMessage = Rx<String?>(null);
@@ -44,18 +45,63 @@ class AuthController extends GetxController {
         response.data as Map<String, dynamic>,
       );
 
+      if (!authResponse.user.isUser) {
+        errorMessage.value = 'Akses ditolak. Aplikasi ini hanya untuk anggota.';
+        return;
+      }
+
       await StorageService.saveToken(authResponse.token);
       await StorageService.saveUser(authResponse.user.toJson());
 
       user.value = authResponse.user;
       isAuthenticated.value = true;
 
-      Get.offAllNamed('/dashboard');
+      Get.offAllNamed('/user-dashboard');
     } on Exception catch (e) {
       errorMessage.value = e.toString();
       Get.snackbar('Error', 'Login failed: ${errorMessage.value}');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+    required String unitId,
+  }) async {
+    try {
+      isRegistering.value = true;
+      errorMessage.value = null;
+
+      await _apiService.post(
+        '/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'unitId': unitId,
+          'role': 'user',
+        },
+      );
+
+      Get.back();
+      Get.snackbar('Berhasil', 'Akun berhasil dibuat! Silakan login.',
+          duration: const Duration(seconds: 3));
+    } on Exception catch (e) {
+      final msg = e.toString();
+      if (msg.contains('409') || msg.contains('already')) {
+        errorMessage.value = 'Email sudah terdaftar';
+      } else if (msg.contains('Connection refused')) {
+        errorMessage.value = 'Tidak dapat terhubung ke server';
+      } else if (msg.contains('400')) {
+        errorMessage.value = 'Data tidak valid, periksa kembali';
+      } else {
+        errorMessage.value = 'Pendaftaran gagal, coba lagi';
+      }
+    } finally {
+      isRegistering.value = false;
     }
   }
 

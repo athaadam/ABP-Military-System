@@ -25,9 +25,10 @@ router.get('/units/info/:id', auth, getUnitInfo);
 router.use('/users', auth, superAdminOnly, userRoutes);
 router.use('/units', auth, superAdminOnly, unitRoutes);
 
-// Admin only routes - manage warehouse, items
+// Admin only routes - manage warehouse
 router.use('/warehouses', auth, adminOnly, warehouseRoutes);
-router.use('/items', auth, adminOnly, itemRoutes);
+// Items: GET accessible to all authenticated users, write ops protected in itemRoutes
+router.use('/items', auth, itemRoutes);
 
 // User + Admin routes - manage requests and returns
 router.use('/requests', auth, requestRoutes);

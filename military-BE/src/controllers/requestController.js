@@ -93,32 +93,23 @@ async function getPendingRequests(req, res) {
     let query
     let params = []
 
+    const baseSelect =
+      'SELECT r.id, r.userId, r.itemId, r.quantity, r.reason, r.status, r.approvedBy, r.created_at, ' +
+      'u.name AS userName, u.email AS userEmail, it.name AS itemName, it.category AS itemCategory, w.name AS warehouseName, ' +
+      'ap.name AS approvedByName ' +
+      'FROM `request` r ' +
+      'JOIN `user` u ON r.userId = u.id ' +
+      'JOIN `item` it ON r.itemId = it.id ' +
+      'JOIN `warehouse` w ON it.warehouseId = w.id ' +
+      'LEFT JOIN `user` ap ON r.approvedBy = ap.id '
+
     if (unitId) {
-      query =
-        'SELECT r.id, r.userId, r.itemId, r.quantity, r.reason, r.status, r.approvedBy, r.created_at, ' +
-        'u.name AS userName, u.email AS userEmail, it.name AS itemName, it.category AS itemCategory, w.name AS warehouseName, ' +
-        'ap.name AS approvedByName ' +
-        'FROM `request` r ' +
-        'JOIN `user` u ON r.userId = u.id ' +
-        'JOIN `item` it ON r.itemId = it.id ' +
-        'JOIN `warehouse` w ON it.warehouseId = w.id ' +
-        'LEFT JOIN `user` ap ON r.approvedBy = ap.id ' +
-        'WHERE w.unitId = ? AND r.status = "pending" ' +
-        'ORDER BY r.created_at ASC'
+      // Filter by the requesting user's unit (not the warehouse's unit)
+      query = baseSelect + 'WHERE u.unitId = ? AND r.status = "pending" ORDER BY r.created_at ASC'
       params = [unitId]
     } else {
       // superadmin without unitId: return all pending requests across units
-      query =
-        'SELECT r.id, r.userId, r.itemId, r.quantity, r.reason, r.status, r.approvedBy, r.created_at, ' +
-        'u.name AS userName, u.email AS userEmail, it.name AS itemName, it.category AS itemCategory, w.name AS warehouseName, ' +
-        'ap.name AS approvedByName ' +
-        'FROM `request` r ' +
-        'JOIN `user` u ON r.userId = u.id ' +
-        'JOIN `item` it ON r.itemId = it.id ' +
-        'JOIN `warehouse` w ON it.warehouseId = w.id ' +
-        'LEFT JOIN `user` ap ON r.approvedBy = ap.id ' +
-        'WHERE r.status = "pending" ' +
-        'ORDER BY r.created_at ASC'
+      query = baseSelect + 'WHERE r.status = "pending" ORDER BY r.created_at ASC'
       params = []
     }
 

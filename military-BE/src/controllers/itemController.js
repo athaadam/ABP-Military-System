@@ -105,7 +105,7 @@ async function getItems(req, res) {
     let query = 'SELECT i.id, i.name, i.category, i.stock, i.`condition`, i.warehouseId, i.imageUrl, w.name AS warehouseName, w.unitId FROM `item` i LEFT JOIN `warehouse` w ON i.warehouseId = w.id';
     const params = [];
 
-    if (req.user.role === 'admin') {
+    if (req.user.role === 'admin' || req.user.role === 'user') {
       query += ' WHERE w.unitId = ?';
       params.push(req.user.unitId);
     } else if (req.user.role === 'superadmin' && req.query.unitId) {
@@ -113,7 +113,10 @@ async function getItems(req, res) {
       params.push(req.query.unitId);
     }
 
+    console.log('[getItems] role:', req.user.role, '| unitId:', req.user.unitId, '| query:', query, '| params:', params);
+
     const [rows] = await pool.query(query, params);
+    console.log('[getItems] rows returned:', rows.length);
     const data = await attachConditionSummary(rows, pool);
     return res.json({ message: 'Data item berhasil diambil', data });
   } catch (err) {

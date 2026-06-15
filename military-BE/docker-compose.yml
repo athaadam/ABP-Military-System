@@ -28,11 +28,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # PENTING: DB_HOST pake nama service yaitu 'db'
       DB_HOST: db
       DB_USER: root
       DB_PASS: rootpassword
       DB_NAME: military_db
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: ["npx", "nodemon", "server.js"]
     depends_on:
       db:
         condition: service_healthy

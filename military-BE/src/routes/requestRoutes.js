@@ -14,10 +14,11 @@ const router = express.Router();
 // User routes
 router.post('/', validateRequestInput, validateItemExists, createRequest);
 router.get('/my', getMyRequests);
-router.get('/:id', getRequestById);
 
 // Admin routes
 router.get('/pending/list', adminOnly, getPendingRequests);
+
+router.get('/:id', getRequestById);
 router.patch('/:id/approve', adminOnly, approveRequest);
 router.patch('/:id/reject', adminOnly, rejectRequest);
 
